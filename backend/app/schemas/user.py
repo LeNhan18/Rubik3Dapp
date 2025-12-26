@@ -1,0 +1,36 @@
+from pydantic import BaseModel, EmailStr
+from typing import Optional
+from datetime import datetime
+
+class UserCreate(BaseModel):
+    username: str
+    email: EmailStr
+    password: str
+
+class UserLogin(BaseModel):
+    email: EmailStr
+    password: str
+
+class UserResponse(BaseModel):
+    id: int
+    username: str
+    email: str
+    avatar_url: Optional[str] = None
+    total_wins: int = 0
+    total_losses: int = 0
+    total_draws: int = 0
+    average_time: Optional[float] = None
+    best_time: Optional[int] = None
+    elo_rating: int = 1000
+    is_online: bool = False
+    last_seen: Optional[datetime] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+class TokenResponse(BaseModel):
+    access_token: str
+    token_type: str = "bearer"
+    user: UserResponse
+

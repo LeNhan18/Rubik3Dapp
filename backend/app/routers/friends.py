@@ -1,0 +1,108 @@
+from fastapi import APIRouter, Depends
+from sqlalchemy.orm import Session
+from app.database import get_db
+from app.schemas.friendship import FriendshipCreate, FriendshipResponse
+from app.services.friendship_service import FriendshipService
+from app.utils.dependencies import get_current_user
+from app.models.user import User
+from typing import List
+
+router = APIRouter()
+
+@router.post("/request", response_model=FriendshipResponse)
+async def send_friend_request(
+    friendship_data: FriendshipCreate,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Send a friend request"""
+    service = FriendshipService(db)
+    friendship = service.send_friend_request(current_user["id"], friendship_data)
+    
+    # Get usernames
+    user1 = db.query(User).filter(User.id == friendship.user1_id).first()
+    user2 = db.query(User).filter(User.id == friendship.user2_id).first()
+    
+    return {
+        "id": friendship.id,
+        "user1_id": friendship.user1_id,
+        "user2_id": friendship.user2_id,
+        "status": friendship.status.value,
+        "created_at": friendship.created_at,
+        "user1_username": user1.username,
+        "user2_username": user2.username
+    }
+
+@router.post("/{friendship_id}/accept", response_model=FriendshipResponse)
+async def accept_friend_request(
+    friendship_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Accept a friend request"""
+    service = FriendshipService(db)
+    friendship = service.accept_friend_request(current_user["id"], friendship_id)
+    
+    # Get usernames
+    user1 = db.query(User).filter(User.id == friendship.user1_id).first()
+    user2 = db.query(User).filter(User.id == friendship.user2_id).first()
+    
+    return {
+        "id": friendship.id,
+        "user1_id": friendship.user1_id,
+        "user2_id": friendship.user2_id,
+        "status": friendship.status.value,
+        "created_at": friendship.created_at,
+        "user1_username": user1.username,
+        "user2_username": user2.username
+    }
+
+@router.get("/", response_model=List[dict])
+async def get_friends(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get list of friends"""
+    service = FriendshipService(db)
+    friends = service.get_friends(current_user["id"])
+    
+    return [
+        {
+            "id": friend.id,
+            "username": friend.username,
+            "email": friend.email,
+            "avatar_url": friend.avatar_url,
+            "is_online": friend.is_online,
+            "total_wins": friend.total_wins,
+            "total_losses": friend.total_losses,
+            "average_time": float(friend.average_time) if friend.average_time else None,
+            "best_time": friend.best_time
+        }
+        for friend in friends
+    ]
+
+@router.get("/pending", response_model=List[FriendshipResponse])
+async def get_pending_requests(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get pending friend requests"""
+    service = FriendshipService(db)
+    requests = service.get_pending_requests(current_user["id"])
+    
+    result = []
+    for req in requests:
+        user1 = db.query(User).filter(User.id == req.user1_id).first()
+        user2 = db.query(User).filter(User.id == req.user2_id).first()
+        result.append({
+            "id": req.id,
+            "user1_id": req.user1_id,
+            "user2_id": req.user2_id,
+            "status": req.status.value,
+            "created_at": req.created_at,
+            "user1_username": user1.username,
+            "user2_username": user2.username
+        })
+    
+    return result
+
