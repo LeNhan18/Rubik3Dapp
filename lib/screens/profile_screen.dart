@@ -113,6 +113,14 @@ class _ProfileScreenState extends State<ProfileScreen> {
           icon: const Icon(Icons.arrow_back),
           onPressed: () => context.pop(),
         ),
+        actions: [
+          if (_isCurrentUser)
+            IconButton(
+              icon: const Icon(Icons.edit),
+              onPressed: () => _showEditProfileDialog(context),
+              tooltip: 'Chỉnh sửa hồ sơ',
+            ),
+        ],
       ),
       body: SingleChildScrollView(
         child: Column(
@@ -339,5 +347,157 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+  void _showEditProfileDialog(BuildContext context) {
+    final usernameController = TextEditingController(text: _user?.username ?? '');
+    final emailController = TextEditingController(text: _user?.email ?? '');
+
+    showDialog(
+      context: context,
+      builder: (dialogContext) => _EditProfileDialog(
+        usernameController: usernameController,
+        emailController: emailController,
+        currentUser: _user!,
+        apiService: _apiService,
+        onUpdated: (updatedUser) {
+          setState(() {
+            _user = updatedUser;
+          });
+        },
+      ),
+    );
+  }
 }
 
+class _EditProfileDialog extends StatefulWidget {
+  final TextEditingController usernameController;
+  final TextEditingController emailController;
+  final User currentUser;
+  final ApiService apiService;
+  final Function(User) onUpdated;
+
+  const _EditProfileDialog({
+    required this.usernameController,
+    required this.emailController,
+    required this.currentUser,
+    required this.apiService,
+    required this.onUpdated,
+  });
+
+  @override
+  State<_EditProfileDialog> createState() => _EditProfileDialogState();
+}
+
+class _EditProfileDialogState extends State<_EditProfileDialog> {
+  bool _isSaving = false;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+          title: const Text('Chỉnh sửa hồ sơ'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: widget.usernameController,
+                  decoration: const InputDecoration(
+                    labelText: 'Tên người dùng',
+                    prefixIcon: Icon(Icons.person),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: widget.emailController,
+                  keyboardType: TextInputType.emailAddress,
+                  decoration: const InputDecoration(
+                    labelText: 'Email',
+                    prefixIcon: Icon(Icons.email),
+                    border: OutlineInputBorder(),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: _isSaving
+                  ? null
+                  : () => Navigator.of(context).pop(),
+              child: const Text('Hủy'),
+            ),
+            ElevatedButton(
+              onPressed: _isSaving
+                  ? null
+                  : () async {
+                      final newUsername = widget.usernameController.text.trim();
+                      final newEmail = widget.emailController.text.trim();
+
+                      // Validation
+                      if (newUsername.isEmpty) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Tên người dùng không được để trống'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      if (newEmail.isEmpty || !newEmail.contains('@')) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('Email không hợp lệ'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                        return;
+                      }
+
+                      setState(() => _isSaving = true);
+
+                      try {
+                        final updatedUser = await widget.apiService.updateProfile(
+                          username: newUsername != widget.currentUser.username ? newUsername : null,
+                          email: newEmail != widget.currentUser.email ? newEmail : null,
+                        );
+
+                        setState(() => _isSaving = false);
+                        Navigator.of(context).pop();
+
+                        // Callback to update parent
+                        widget.onUpdated(updatedUser);
+
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Cập nhật hồ sơ thành công'),
+                              backgroundColor: Colors.green,
+                            ),
+                          );
+                        }
+                      } catch (e) {
+                        setState(() => _isSaving = false);
+                        if (mounted) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text('Lỗi: ${e.toString()}'),
+                              backgroundColor: Colors.red,
+                            ),
+                          );
+                        }
+                      }
+                    },
+              child: _isSaving
+                  ? const SizedBox(
+                      width: 20,
+                      height: 20,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Text('Lưu'),
+            ),
+          ],
+        );
+  }
+}

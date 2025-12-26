@@ -349,5 +349,31 @@ class ApiService {
       throw Exception('Failed to get leaderboard');
     }
   }
+
+  // ========== PROFILE UPDATE ==========
+  Future<User> updateProfile({
+    String? username,
+    String? email,
+    String? avatarUrl,
+  }) async {
+    final body = <String, dynamic>{};
+    if (username != null) body['username'] = username;
+    if (email != null) body['email'] = email;
+    if (avatarUrl != null) body['avatar_url'] = avatarUrl;
+
+    final response = await http.put(
+      Uri.parse('$baseUrl/users/me'),
+      headers: await _getHeaders(),
+      body: jsonEncode(body),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as Map<String, dynamic>;
+      return User.fromJson(data);
+    } else {
+      final error = jsonDecode(response.body) as Map<String, dynamic>;
+      throw Exception(error['detail'] ?? 'Failed to update profile');
+    }
+  }
 }
 
