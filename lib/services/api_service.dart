@@ -253,15 +253,27 @@ class ApiService {
   // ========== FRIENDS ==========
   Future<List<User>> getFriends() async {
     final response = await http.get(
-      Uri.parse('$baseUrl/friends'),
+      Uri.parse('$baseUrl/friends/'),
       headers: await _getHeaders(),
     );
 
     if (response.statusCode == 200) {
-      final data = jsonDecode(response.body) as List<dynamic>;
-      return data.map((json) => User.fromJson(json as Map<String, dynamic>)).toList();
+      try {
+        final data = jsonDecode(response.body) as List<dynamic>;
+        return data.map((json) {
+          try {
+            return User.fromJson(json as Map<String, dynamic>);
+          } catch (e) {
+            print('Error parsing user: $e, json: $json');
+            rethrow;
+          }
+        }).toList();
+      } catch (e) {
+        print('Error parsing friends response: $e, body: ${response.body}');
+        rethrow;
+      }
     } else {
-      throw Exception('Failed to get friends');
+      throw Exception('Failed to get friends: ${response.statusCode} - ${response.body}');
     }
   }
 
@@ -276,6 +288,50 @@ class ApiService {
       return data.map((json) => User.fromJson(json as Map<String, dynamic>)).toList();
     } else {
       throw Exception('Failed to search users');
+    }
+  }
+
+  // Send friend request
+  Future<Map<String, dynamic>> sendFriendRequest(int userId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/friends/request'),
+      headers: await _getHeaders(),
+      body: jsonEncode({'user2_id': userId}),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      throw Exception('Failed to send friend request: ${response.statusCode} - ${response.body}');
+    }
+  }
+
+  // Accept friend request
+  Future<Map<String, dynamic>> acceptFriendRequest(int friendshipId) async {
+    final response = await http.post(
+      Uri.parse('$baseUrl/friends/$friendshipId/accept'),
+      headers: await _getHeaders(),
+    );
+
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body) as Map<String, dynamic>;
+    } else {
+      throw Exception('Failed to accept friend request: ${response.statusCode} - ${response.body}');
+    }
+  }
+
+  // Get pending friend requests
+  Future<List<Map<String, dynamic>>> getPendingRequests() async {
+    final response = await http.get(
+      Uri.parse('$baseUrl/friends/pending'),
+      headers: await _getHeaders(),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body) as List<dynamic>;
+      return data.map((json) => json as Map<String, dynamic>).toList();
+    } else {
+      throw Exception('Failed to get pending requests: ${response.statusCode} - ${response.body}');
     }
   }
 

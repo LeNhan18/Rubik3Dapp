@@ -75,8 +75,12 @@ async def get_friends(
             "is_online": friend.is_online,
             "total_wins": friend.total_wins,
             "total_losses": friend.total_losses,
+            "total_draws": friend.total_draws,
             "average_time": float(friend.average_time) if friend.average_time else None,
-            "best_time": friend.best_time
+            "best_time": friend.best_time,
+            "elo_rating": friend.elo_rating,
+            "last_seen": friend.last_seen.isoformat() if friend.last_seen else None,
+            "created_at": friend.created_at.isoformat() if friend.created_at else None
         }
         for friend in friends
     ]

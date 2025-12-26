@@ -32,8 +32,8 @@ class User {
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
       id: json['id'] as int,
-      username: json['username'] as String,
-      email: json['email'] as String,
+      username: json['username'] as String? ?? 'Unknown',
+      email: json['email'] as String? ?? '',
       avatarUrl: json['avatar_url'] as String?,
       totalWins: json['total_wins'] as int? ?? 0,
       totalLosses: json['total_losses'] as int? ?? 0,
@@ -47,7 +47,9 @@ class User {
       lastSeen: json['last_seen'] != null
           ? DateTime.parse(json['last_seen'] as String)
           : null,
-      createdAt: DateTime.parse(json['created_at'] as String),
+      createdAt: json['created_at'] != null
+          ? DateTime.parse(json['created_at'] as String)
+          : DateTime.now(),
     );
   }
 

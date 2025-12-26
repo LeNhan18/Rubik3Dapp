@@ -84,6 +84,7 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      extendBodyBehindAppBar: false,
       appBar: AppBar(
         title: const Text('Bảng xếp hạng ELO'),
         leading: IconButton(

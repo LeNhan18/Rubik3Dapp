@@ -514,10 +514,125 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
     _timer?.cancel();
   }
 
+  // Kiểm tra cube đã giải xong chưa
+  bool _isCubeSolved() {
+    if (_rotationService == null || _cubeFaceColors.isEmpty || _cubeGridPositions.isEmpty) {
+      return false;
+    }
+    
+    // Màu chuẩn của cube đã giải (theo getInitialCubeColors):
+    // [0] front (z=2): White
+    // [1] back (z=0): Yellow
+    // [2] top (y=2): Red
+    // [3] bottom (y=0): Orange
+    // [4] right (x=2): Blue
+    // [5] left (x=0): Green
+    
+    final whiteColor = Colors.white;
+    final yellowColor = Colors.yellow;
+    final redColor = Colors.red;
+    final orangeColor = Colors.orange;
+    final blueColor = Colors.blue;
+    final greenColor = Colors.green;
+    
+    // Kiểm tra từng mặt của cube (9 stickers mỗi mặt)
+    // Front face (z=2): tất cả phải là white
+    for (int x = 0; x < 3; x++) {
+      for (int y = 0; y < 3; y++) {
+        final cubeEntry = _cubeGridPositions.entries.firstWhere(
+          (e) => e.value[0] == x && e.value[1] == y && e.value[2] == 2,
+        );
+        final colors = _cubeFaceColors[cubeEntry.key] ?? [];
+        if (colors.length < 6) return false;
+        // Màu front là index 0
+        if (colors[0] != whiteColor) return false;
+      }
+    }
+    
+    // Back face (z=0): tất cả phải là yellow
+    for (int x = 0; x < 3; x++) {
+      for (int y = 0; y < 3; y++) {
+        final cubeEntry = _cubeGridPositions.entries.firstWhere(
+          (e) => e.value[0] == x && e.value[1] == y && e.value[2] == 0,
+        );
+        final colors = _cubeFaceColors[cubeEntry.key] ?? [];
+        if (colors.length < 6) return false;
+        // Màu back là index 1
+        if (colors[1] != yellowColor) return false;
+      }
+    }
+    
+    // Top face (y=2): tất cả phải là red
+    for (int x = 0; x < 3; x++) {
+      for (int z = 0; z < 3; z++) {
+        final cubeEntry = _cubeGridPositions.entries.firstWhere(
+          (e) => e.value[0] == x && e.value[1] == 2 && e.value[2] == z,
+        );
+        final colors = _cubeFaceColors[cubeEntry.key] ?? [];
+        if (colors.length < 6) return false;
+        // Màu top là index 2
+        if (colors[2] != redColor) return false;
+      }
+    }
+    
+    // Bottom face (y=0): tất cả phải là orange
+    for (int x = 0; x < 3; x++) {
+      for (int z = 0; z < 3; z++) {
+        final cubeEntry = _cubeGridPositions.entries.firstWhere(
+          (e) => e.value[0] == x && e.value[1] == 0 && e.value[2] == z,
+        );
+        final colors = _cubeFaceColors[cubeEntry.key] ?? [];
+        if (colors.length < 6) return false;
+        // Màu bottom là index 3
+        if (colors[3] != orangeColor) return false;
+      }
+    }
+    
+    // Right face (x=2): tất cả phải là blue
+    for (int y = 0; y < 3; y++) {
+      for (int z = 0; z < 3; z++) {
+        final cubeEntry = _cubeGridPositions.entries.firstWhere(
+          (e) => e.value[0] == 2 && e.value[1] == y && e.value[2] == z,
+        );
+        final colors = _cubeFaceColors[cubeEntry.key] ?? [];
+        if (colors.length < 6) return false;
+        // Màu right là index 4
+        if (colors[4] != blueColor) return false;
+      }
+    }
+    
+    // Left face (x=0): tất cả phải là green
+    for (int y = 0; y < 3; y++) {
+      for (int z = 0; z < 3; z++) {
+        final cubeEntry = _cubeGridPositions.entries.firstWhere(
+          (e) => e.value[0] == 0 && e.value[1] == y && e.value[2] == z,
+        );
+        final colors = _cubeFaceColors[cubeEntry.key] ?? [];
+        if (colors.length < 6) return false;
+        // Màu left là index 5
+        if (colors[5] != greenColor) return false;
+      }
+    }
+    
+    return true;
+  }
+
   Future<void> _submitResult() async {
     if (_elapsedMilliseconds == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Vui lòng giải cube trước khi nộp kết quả')),
+      );
+      return;
+    }
+
+    // Kiểm tra cube đã giải xong chưa
+    if (!_isCubeSolved()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Cube chưa được giải xong! Vui lòng giải cube hoàn chỉnh trước khi nộp kết quả.'),
+          duration: Duration(seconds: 3),
+          backgroundColor: Colors.red,
+        ),
       );
       return;
     }
@@ -685,6 +800,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
     final opponentTime = isPlayer1 ? _match!.player2Time : _match!.player1Time;
 
     return Scaffold(
+      extendBodyBehindAppBar: false,
       appBar: AppBar(
         title: Text('Trận đấu #${_match!.matchId.substring(0, 8)}'),
         leading: IconButton(

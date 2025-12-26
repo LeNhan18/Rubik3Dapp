@@ -87,6 +87,7 @@ class _MatchListScreenState extends State<MatchListScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
+      extendBodyBehindAppBar: false,
       appBar: AppBar(
         title: const Text('Trận đấu của tôi'),
         leading: IconButton(
@@ -229,13 +230,6 @@ class _MatchListScreenState extends State<MatchListScreen> {
                           : Colors.green.withOpacity(0.2),
                     ),
                 ],
-              ),
-              const SizedBox(height: 8),
-              Text(
-                'Scramble: ${match.scramble}',
-                style: theme.textTheme.bodySmall,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
               ),
               const SizedBox(height: 8),
               Row(

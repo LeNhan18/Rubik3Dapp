@@ -143,6 +143,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final theme = Theme.of(context);
 
     return Scaffold(
+      extendBodyBehindAppBar: false, // Đảm bảo AppBar không tràn lên status bar
       appBar: AppBar(
         automaticallyImplyLeading: false,
         title: const Text('Rubik Master'),
@@ -184,9 +185,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     children: [
                       const Icon(Icons.person),
                       const SizedBox(width: 8),
-                      Text('Xem thông tin'),
+                      const Text('Xem thông tin'),
                     ],
                   ),
+                  onTap: () {
+                    Future.delayed(const Duration(milliseconds: 100), () {
+                      context.push('/profile');
+                    });
+                  },
                 ),
                 PopupMenuItem(
                   value: 'logout',

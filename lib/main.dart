@@ -15,6 +15,9 @@ import 'screens/match_list_screen.dart';
 import 'screens/match_detail_screen.dart';
 import 'screens/friends_screen.dart';
 import 'screens/leaderboard_screen.dart';
+import 'screens/profile_screen.dart';
+import 'screens/friend_chat_screen.dart';
+import 'models/user.dart';
 
 
 
@@ -39,6 +42,12 @@ void main() async {
       systemNavigationBarColor: Colors.transparent,
       systemNavigationBarIconBrightness: Brightness.dark,
     ),
+  );
+
+  // Đảm bảo dialog quyền không bị che khuất và nội dung không tràn lên status bar
+  // Sử dụng SystemUiMode.edgeToEdge nhưng vẫn giữ padding để tránh tràn
+  SystemChrome.setEnabledSystemUIMode(
+    SystemUiMode.edgeToEdge,
   );
 
   runApp(
@@ -106,6 +115,27 @@ class RubikMasterApp extends ConsumerWidget {
         path: '/leaderboard',
         builder: (context, state) => const LeaderboardScreen(),
       ),
+      GoRoute(
+        path: '/profile',
+        builder: (context, state) {
+          final userId = state.uri.queryParameters['userId'];
+          return ProfileScreen(
+            userId: userId != null ? int.tryParse(userId) : null,
+          );
+        },
+      ),
+      GoRoute(
+        path: '/chat',
+        builder: (context, state) {
+          final friend = state.extra as User?;
+          if (friend == null) {
+            return const Scaffold(
+              body: Center(child: Text('Không tìm thấy người dùng')),
+            );
+          }
+          return FriendChatScreen(friend: friend);
+        },
+      ),
     ],
   );
 
@@ -114,6 +144,15 @@ class RubikMasterApp extends ConsumerWidget {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
       routerConfig: _router,
+      // Đảm bảo nội dung không tràn lên status bar
+      builder: (context, child) {
+        final mediaQuery = MediaQuery.of(context);
+        // Giữ nguyên padding từ MediaQuery gốc để tránh tràn lên status bar
+        return MediaQuery(
+          data: mediaQuery,
+          child: child!,
+        );
+      },
     );
   }
 }

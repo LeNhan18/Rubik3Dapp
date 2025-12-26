@@ -394,14 +394,20 @@ class _Cube3DSolverScreenState extends State<Cube3DSolverScreen> with TickerProv
       await Future.delayed(const Duration(milliseconds: 30));
     }
 
+    // Lưu các shuffle moves vào _userMoves để có thể tạo giải pháp ngược lại
     setState(() {
       _hasShuffled = true;
+      _userMoves = List<String>.from(shuffleMoves); // Lưu moves để giải ngược lại
+      _solutionSteps.clear(); // Xóa giải pháp cũ nếu có
+      _currentStepIndex = 0;
+      _currentStep = null;
     });
 
+    // Không hiển thị số bước shuffle - chỉ hiển thị giải pháp sau khi tìm được
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Đã xáo cube với ${shuffleMoves.length} bước! Bấm "Tìm giải pháp" để giải.'),
-        duration: const Duration(seconds: 2),
+      const SnackBar(
+        content: Text('Đã xáo cube! Bấm "Tìm giải pháp" để giải.'),
+        duration: Duration(seconds: 2),
       ),
     );
   }
@@ -467,33 +473,50 @@ class _Cube3DSolverScreenState extends State<Cube3DSolverScreen> with TickerProv
       _isSolving = true;
     });
 
-    // Tạo solver service từ cube model hiện tại
-    _solverService = RubikSolverService(_rubikCube);
-    final steps = _solverService!.generateSolution();
-
     await Future.delayed(const Duration(milliseconds: 500));
 
-    setState(() {
-      _solutionSteps = steps;
-      _currentStepIndex = 0;
-      _currentStep = null;
-      _isSolving = false;
-    });
+    // Nếu có user moves (từ tự động xáo hoặc người dùng tự xoay), giải ngược lại
+    if (_userMoves.isNotEmpty) {
+      setState(() {
+        _solutionSteps = _reverseMoves(_userMoves);
+        _currentStepIndex = 0;
+        _currentStep = null;
+        _isSolving = false;
+      });
 
-    if (_solutionSteps.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Cube đã được giải rồi!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-    } else {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Đã tìm thấy ${_solutionSteps.length} bước giải!'),
           duration: const Duration(seconds: 2),
         ),
       );
+    } else {
+      // Nếu không có user moves, dùng solver service
+      _solverService = RubikSolverService(_rubikCube);
+      final steps = _solverService!.generateSolution();
+
+      setState(() {
+        _solutionSteps = steps;
+        _currentStepIndex = 0;
+        _currentStep = null;
+        _isSolving = false;
+      });
+
+      if (_solutionSteps.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cube đã được giải rồi!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Đã tìm thấy ${_solutionSteps.length} bước giải!'),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     }
   }
 
@@ -786,30 +809,8 @@ class _Cube3DSolverScreenState extends State<Cube3DSolverScreen> with TickerProv
                       ],
                     ),
                     const SizedBox(height: 8),
-                    // Hiển thị số moves đã ghi nhận
-                    if (_isTrackingMoves || _userMoves.isNotEmpty)
-                      Container(
-                        padding: const EdgeInsets.all(8),
-                        decoration: BoxDecoration(
-                          color: Colors.deepPurple[900],
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              _isTrackingMoves ? Icons.fiber_manual_record : Icons.check_circle,
-                              color: _isTrackingMoves ? Colors.green : Colors.blue,
-                              size: 16,
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              'Đã ghi nhận: ${_userMoves.length} moves',
-                              style: const TextStyle(color: Colors.white, fontSize: 12),
-                            ),
-                          ],
-                        ),
-                      ),
+                    // Ẩn hiển thị moves khi đang tracking - chỉ hiển thị khi đã có giải pháp
+                    // Không hiển thị ở đây nữa
                     const SizedBox(height: 8),
                     // Nút xoay các mặt (chỉ hiện khi đang tracking)
                     if (_isTrackingMoves) ...[
@@ -846,8 +847,8 @@ class _Cube3DSolverScreenState extends State<Cube3DSolverScreen> with TickerProv
                       ),
                       const SizedBox(height: 8),
                     ],
-                    // Hiển thị các moves đã ghi nhận
-                    if (_userMoves.isNotEmpty) ...[
+                    // Hiển thị giải pháp (solution steps) khi đã tìm được giải pháp
+                    if (_solutionSteps.isNotEmpty && !_isTrackingMoves) ...[
                       Container(
                         padding: const EdgeInsets.all(12),
                         decoration: BoxDecoration(
@@ -858,17 +859,23 @@ class _Cube3DSolverScreenState extends State<Cube3DSolverScreen> with TickerProv
                           crossAxisAlignment: CrossAxisAlignment.start,
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            const Text(
-                              'Moves đã ghi nhận:',
-                              style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                            Row(
+                              children: [
+                                const Icon(Icons.check_circle, color: Colors.green, size: 16),
+                                const SizedBox(width: 8),
+                                Text(
+                                  'Giải pháp (${_solutionSteps.length} bước):',
+                                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 12),
+                                ),
+                              ],
                             ),
-                            const SizedBox(height: 4),
+                            const SizedBox(height: 8),
                             Wrap(
                               spacing: 4,
                               runSpacing: 4,
-                              children: _userMoves.map((move) => Chip(
+                              children: _solutionSteps.map((move) => Chip(
                                 label: Text(move, style: const TextStyle(fontSize: 11)),
-                                backgroundColor: Colors.blue[700],
+                                backgroundColor: Colors.green[700],
                               )).toList(),
                             ),
                           ],
