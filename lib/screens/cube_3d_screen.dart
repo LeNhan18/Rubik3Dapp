@@ -8,6 +8,7 @@ import '../widgets/rubik_scene.dart';
 import '../services/rubik_rotation_service.dart';
 import '../services/rubik_auto_service.dart';
 import '../widgets/rubik_controls.dart';
+import '../utils/rubik_gesture_handler.dart';
 
 class Cube3DScreen extends StatefulWidget {
   const Cube3DScreen({Key? key}) : super(key: key);
@@ -27,10 +28,12 @@ class _Cube3DScreenState extends State<Cube3DScreen> with TickerProviderStateMix
   late CameraController _cameraController;
   RubikRotationService? _rotationService;
   RubikAutoService? _autoService;
+  RubikGestureHandler? _gestureHandler;
   
   bool _isRotating = false;
   bool _isAutoSwapping = false;
   bool _isAutoSolving = false;
+  bool _isScaling = false; // Flag để tránh xung đột với pan gesture
   
   Offset? _lastFocalPoint;
 
@@ -106,23 +109,118 @@ class _Cube3DScreenState extends State<Cube3DScreen> with TickerProviderStateMix
     scene.light.position.setFrom(Vector3(15, 15, 15));
     _cameraController.updateCameraPosition(scene);
     scene.camera.target.setValues(0, 0, 0);
+    
+    // Khởi tạo gesture handler để xoay Rubik bằng chuột
+    _gestureHandler = RubikGestureHandler(
+      onRotateFace: (face, clockwise) {
+        print('onRotateFace called: face = $face, clockwise = $clockwise');
+        _handleRotateFace(face, clockwise);
+      },
+      getCameraAngles: () => [_cameraController.angleX, _cameraController.angleY],
+    );
+  }
+  
+  /// Xử lý xoay mặt từ gesture handler
+  /// 
+  /// QUAN TRỌNG: Hàm này chỉ map gesture sang các hàm rotate có sẵn.
+  /// KHÔNG xoay Rubik trực tiếp, mà gọi các hàm _rotateR(), _rotateL(), ... đã được implement đúng.
+  /// 
+  /// Tại sao cách này đảm bảo xoay đúng trục?
+  /// 1. Các hàm _rotateR(), _rotateL(), ... đã được implement đúng với:
+  ///    - axis: trục xoay đúng (0 = X, 1 = Y, 2 = Z)
+  ///    - layer: lớp cần xoay đúng (0, 1, 2 hoặc -1 cho M, E, S)
+  ///    - clockwise: chiều xoay đúng (true/false)
+  /// 
+  /// 2. Các hàm này gọi rotationService.rotateFace() với tham số đúng
+  /// 
+  /// 3. rotationService.rotateFace() đã được implement đúng để:
+  ///    - Xoay đúng các cube con trong layer tương ứng
+  ///    - Xoay quanh tâm Rubik (không lệch)
+  ///    - Cập nhật đúng vị trí và màu sắc
+  /// 
+  /// → Vì vậy, gesture chỉ cần xác định MOVE (R, R', U, U', ...) và gọi hàm tương ứng.
+  /// → Không cần viết lại logic xoay, đảm bảo xoay đúng trục, đúng tâm.
+  void _handleRotateFace(CubeFace face, bool clockwise) {
+    if (_isRotating || _rotationService == null) return;
+    
+    // Map gesture sang các hàm rotate có sẵn
+    // Mỗi hàm này đã được implement đúng với axis, layer, clockwise đúng
+    switch (face) {
+      case CubeFace.right:
+        if (clockwise) {
+          _rotateR();
+        } else {
+          _rotateRPrime();
+        }
+        break;
+      case CubeFace.left:
+        if (clockwise) {
+          _rotateL();
+        } else {
+          _rotateLPrime();
+        }
+        break;
+      case CubeFace.up:
+        if (clockwise) {
+          _rotateU();
+        } else {
+          _rotateUPrime();
+        }
+        break;
+      case CubeFace.down:
+        if (clockwise) {
+          _rotateD();
+        } else {
+          _rotateDPrime();
+        }
+        break;
+      case CubeFace.front:
+        if (clockwise) {
+          _rotateF();
+        } else {
+          _rotateFPrime();
+        }
+        break;
+      case CubeFace.back:
+        if (clockwise) {
+          _rotateB();
+        } else {
+          _rotateBPrime();
+        }
+        break;
+    }
   }
 
+  /// Xử lý khi bắt đầu xoay camera (xoay xung quanh Rubik)
+  /// 
+  /// QUAN TRỌNG: Logic xoay camera xung quanh Rubik vẫn được giữ nguyên!
+  /// - 2 ngón tay trở lên = xoay camera xung quanh Rubik
+  /// - Logic này không thay đổi, vẫn hoạt động bình thường
   void _onScaleStart(ScaleStartDetails details) {
+    // Chỉ set _isScaling = true khi thực sự là multi-touch (2+ ngón tay)
+    // Logic này được xử lý trong RubikScene, chỉ gọi khi pointerCount >= 2
+    _isScaling = true; // Đang xoay camera, không cho xoay Rubik
     _lastFocalPoint = details.focalPoint;
     _cameraController.updateCameraPosition(_scene);
   }
 
+  /// Xử lý khi đang xoay camera (xoay xung quanh Rubik)
+  /// 
+  /// QUAN TRỌNG: Logic xoay camera xung quanh Rubik vẫn được giữ nguyên!
+  /// - Pan (kéo): Xoay camera xung quanh Rubik
+  /// - Scale (pinch): Zoom in/out
   void _onScaleUpdate(ScaleUpdateDetails details) {
     final currentFocal = details.focalPoint;
 
-    // Xử lý pan (kéo để xoay camera)
+    // Xử lý pan (kéo để xoay camera xung quanh Rubik)
+    // Logic này vẫn được giữ nguyên, không thay đổi
     if (_lastFocalPoint != null) {
       final delta = currentFocal - _lastFocalPoint!;
       _cameraController.updateFromPan(delta);
     }
 
     // Xử lý scale (pinch zoom)
+    // Logic này vẫn được giữ nguyên, không thay đổi
     if (details.scale != 1.0) {
       _cameraController.updateFromScale(details.scale);
     }
@@ -132,8 +230,12 @@ class _Cube3DScreenState extends State<Cube3DScreen> with TickerProviderStateMix
     setState(() {});
   }
 
+  /// Xử lý khi kết thúc xoay camera (xoay xung quanh Rubik)
+  /// 
+  /// QUAN TRỌNG: Logic xoay camera xung quanh Rubik vẫn được giữ nguyên!
   void _onScaleEnd(ScaleEndDetails details) {
     _lastFocalPoint = null;
+    _isScaling = false; // Kết thúc xoay camera, cho phép xoay Rubik
   }
 
   // Rotation methods
@@ -295,6 +397,11 @@ class _Cube3DScreenState extends State<Cube3DScreen> with TickerProviderStateMix
               onScaleStart: _onScaleStart,
               onScaleUpdate: _onScaleUpdate,
               onScaleEnd: _onScaleEnd,
+              // Gesture để xoay Rubik bằng chuột
+              // Không cần kiểm tra _isScaling vì logic đã được xử lý trong RubikScene
+              onPanStart: _gestureHandler?.handlePanStart,
+              onPanUpdate: _gestureHandler?.handlePanUpdate,
+              onPanEnd: _gestureHandler?.handlePanEnd,
             ),
           ),
           Expanded(

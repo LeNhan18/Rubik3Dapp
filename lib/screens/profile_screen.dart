@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../theme/pixel_colors.dart';
+import '../widgets/pixel_button.dart';
+import '../widgets/pixel_card.dart';
+import '../widgets/pixel_header.dart';
+import '../widgets/pixel_text.dart';
 
 class ProfileScreen extends StatefulWidget {
   final int? userId; // null = current user, otherwise = other user
@@ -79,134 +84,144 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
     if (_isLoading) {
       return Scaffold(
-        extendBodyBehindAppBar: false,
-        appBar: AppBar(
-          title: const Text('Hồ sơ'),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
+        backgroundColor: PixelColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              PixelHeader(
+                title: 'HỒ SƠ',
+                showBackButton: true,
+                onBackPressed: () => context.pop(),
+              ),
+              const Expanded(
+                child: Center(child: CircularProgressIndicator()),
+              ),
+            ],
           ),
         ),
-        body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     if (_user == null) {
       return Scaffold(
-        extendBodyBehindAppBar: false,
-        appBar: AppBar(
-          title: const Text('Hồ sơ'),
-          leading: IconButton(
-            icon: const Icon(Icons.arrow_back),
-            onPressed: () => context.pop(),
+        backgroundColor: PixelColors.background,
+        body: SafeArea(
+          child: Column(
+            children: [
+              PixelHeader(
+                title: 'HỒ SƠ',
+                showBackButton: true,
+                onBackPressed: () => context.pop(),
+              ),
+              Expanded(
+                child: Center(
+                  child: PixelText(
+                    text: 'KHÔNG TÌM THẤY NGƯỜI DÙNG',
+                    style: PixelTextStyle.title,
+                    color: PixelColors.textSecondary,
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
-        body: const Center(child: Text('Không tìm thấy người dùng')),
       );
     }
 
     return Scaffold(
-      extendBodyBehindAppBar: false,
-      appBar: AppBar(
-        title: const Text('Hồ sơ'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
-        actions: [
-          if (_isCurrentUser)
-            IconButton(
-              icon: const Icon(Icons.edit),
-              onPressed: () => _showEditProfileDialog(context),
-              tooltip: 'Chỉnh sửa hồ sơ',
-            ),
-        ],
-      ),
-      body: SingleChildScrollView(
+      backgroundColor: PixelColors.background,
+      body: SafeArea(
         child: Column(
           children: [
-            // Avatar and basic info
-            Container(
-              padding: const EdgeInsets.all(24),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [
-                    theme.colorScheme.primary,
-                    theme.colorScheme.primary.withOpacity(0.7),
-                  ],
-                ),
-              ),
-              child: Column(
-                children: [
-                  CircleAvatar(
-                    radius: 50,
-                    backgroundColor: Colors.white,
-                    child: Text(
-                      _user!.username.substring(0, 1).toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 40,
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      ),
-                    ),
+            PixelHeader(
+              title: 'HỒ SƠ',
+              showBackButton: true,
+              onBackPressed: () => context.pop(),
+              actions: [
+                if (_isCurrentUser)
+                  PixelButton(
+                    text: '✎',
+                    onPressed: () => _showEditProfileDialog(context),
+                    backgroundColor: PixelColors.primaryDark,
+                    width: 40,
+                    height: 40,
+                    borderWidth: 2,
+                    shadowOffset: 2,
                   ),
-                  const SizedBox(height: 16),
-                  Text(
-                    _user!.username,
-                    style: const TextStyle(
-                      fontSize: 24,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    _user!.email,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.white.withOpacity(0.9),
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Container(
-                        width: 10,
-                        height: 10,
-                        decoration: BoxDecoration(
-                          color: _user!.isOnline ? Colors.green : Colors.grey,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Text(
-                        _user!.isOnline ? 'Đang online' : 'Offline',
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 12,
-                        ),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
+              ],
             ),
-
-            // Stats
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Thống kê',
-                    style: theme.textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.bold,
+            Expanded(
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    // Avatar and basic info
+                    PixelCard(
+                      backgroundColor: PixelColors.primary,
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 100,
+                            height: 100,
+                            decoration: BoxDecoration(
+                              color: PixelColors.background,
+                              border: Border.all(color: PixelColors.border, width: 3),
+                            ),
+                            child: Center(
+                              child: PixelText(
+                                text: _user!.username.substring(0, 1).toUpperCase(),
+                                style: PixelTextStyle.display,
+                                color: PixelColors.primary,
+                              ),
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          PixelText(
+                            text: _user!.username.toUpperCase(),
+                            style: PixelTextStyle.headline,
+                            color: PixelColors.background,
+                          ),
+                          const SizedBox(height: 4),
+                          PixelText(
+                            text: _user!.email.toUpperCase(),
+                            style: PixelTextStyle.body,
+                            color: PixelColors.background.withOpacity(0.9),
+                          ),
+                          const SizedBox(height: 8),
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Container(
+                                width: 10,
+                                height: 10,
+                                decoration: BoxDecoration(
+                                  color: _user!.isOnline ? PixelColors.success : PixelColors.textLight,
+                                  border: Border.all(color: PixelColors.border, width: 1),
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              PixelText(
+                                text: _user!.isOnline ? 'ĐANG ONLINE' : 'OFFLINE',
+                                style: PixelTextStyle.caption,
+                                color: PixelColors.background,
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
+
+                    // Stats
+                    Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          PixelText(
+                            text: 'THỐNG KÊ',
+                            style: PixelTextStyle.title,
+                            color: PixelColors.primary,
+                          ),
                   const SizedBox(height: 16),
                   Row(
                     children: [
@@ -303,47 +318,56 @@ class _ProfileScreenState extends State<ProfileScreen> {
           ],
         ),
       ),
+            ),
+        ],
+      ),
+        ),
     );
   }
 
   Widget _buildStatCard(ThemeData theme, String label, String value, IconData icon, Color color) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Icon(icon, color: color, size: 32),
-            const SizedBox(height: 8),
-            Text(
-              value,
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-                color: color,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              label,
-              style: theme.textTheme.bodySmall,
-            ),
-          ],
-        ),
+    return PixelCard(
+      padding: const EdgeInsets.all(16),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 32),
+          const SizedBox(height: 8),
+          PixelText(
+            text: value,
+            style: PixelTextStyle.headline,
+            color: color,
+          ),
+          const SizedBox(height: 4),
+          PixelText(
+            text: label.toUpperCase(),
+            style: PixelTextStyle.caption,
+            color: PixelColors.textSecondary,
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildInfoRow(ThemeData theme, String label, String value, IconData icon, [Color? iconColor]) {
-    return Card(
+    return PixelCard(
       margin: const EdgeInsets.only(bottom: 8),
-      child: ListTile(
-        leading: Icon(icon, color: iconColor ?? theme.colorScheme.primary),
-        title: Text(label),
-        trailing: Text(
-          value,
-          style: theme.textTheme.bodyMedium?.copyWith(
-            fontWeight: FontWeight.bold,
+      padding: const EdgeInsets.all(12),
+      child: Row(
+        children: [
+          Icon(icon, color: iconColor ?? PixelColors.primary, size: 24),
+          const SizedBox(width: 12),
+          Expanded(
+            child: PixelText(
+              text: label.toUpperCase(),
+              style: PixelTextStyle.body,
+            ),
           ),
-        ),
+          PixelText(
+            text: value.toUpperCase(),
+            style: PixelTextStyle.subtitle,
+            color: PixelColors.primary,
+          ),
+        ],
       ),
     );
   }

@@ -3,6 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../theme/pixel_colors.dart';
+import '../widgets/pixel_button.dart';
+import '../widgets/pixel_card.dart';
+import '../widgets/pixel_header.dart';
+import '../widgets/pixel_text.dart';
 
 class LeaderboardScreen extends StatefulWidget {
   const LeaderboardScreen({super.key});
@@ -81,103 +86,99 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      extendBodyBehindAppBar: false,
-      appBar: AppBar(
-        title: const Text('Bảng xếp hạng ELO'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
-        ),
-        actions: [
-          PopupMenuButton<int>(
-            icon: const Icon(Icons.filter_list),
-            onSelected: (limit) {
-              setState(() {
-                _selectedLimit = limit;
-              });
-              _loadLeaderboard();
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 10, child: Text('Top 10')),
-              const PopupMenuItem(value: 50, child: Text('Top 50')),
-              const PopupMenuItem(value: 100, child: Text('Top 100')),
-              const PopupMenuItem(value: 200, child: Text('Top 200')),
-            ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadLeaderboard,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Header info
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.primary.withOpacity(0.1),
-              border: Border(
-                bottom: BorderSide(
-                  color: theme.colorScheme.outline.withOpacity(0.2),
+      backgroundColor: PixelColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            PixelHeader(
+              title: 'BẢNG XẾP HẠNG ELO',
+              showBackButton: true,
+              onBackPressed: () => context.go('/'),
+              actions: [
+                PopupMenuButton<int>(
+                  icon: const Icon(Icons.filter_list, color: PixelColors.background),
+                  onSelected: (limit) {
+                    setState(() {
+                      _selectedLimit = limit;
+                    });
+                    _loadLeaderboard();
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(value: 10, child: PixelText(text: 'Top 10', style: PixelTextStyle.caption)),
+                    PopupMenuItem(value: 50, child: PixelText(text: 'Top 50', style: PixelTextStyle.caption)),
+                    PopupMenuItem(value: 100, child: PixelText(text: 'Top 100', style: PixelTextStyle.caption)),
+                    PopupMenuItem(value: 200, child: PixelText(text: 'Top 200', style: PixelTextStyle.caption)),
+                  ],
                 ),
-              ),
-            ),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                _buildStatItem('Tổng số', '${_leaderboard.length}'),
-                _buildStatItem('Top 1', _leaderboard.isNotEmpty ? '${_leaderboard[0].eloRating}' : '-'),
-                _buildStatItem('Trung bình', _leaderboard.isNotEmpty 
-                  ? '${(_leaderboard.map((u) => u.eloRating).reduce((a, b) => a + b) / _leaderboard.length).round()}' 
-                  : '-'),
+                PixelButton(
+                  text: '↻',
+                  onPressed: _loadLeaderboard,
+                  backgroundColor: PixelColors.primaryDark,
+                  width: 40,
+                  height: 40,
+                  borderWidth: 2,
+                  shadowOffset: 2,
+                ),
               ],
             ),
-          ),
+            // Header info
+            PixelCard(
+              backgroundColor: PixelColors.surface,
+              padding: const EdgeInsets.all(16),
+              margin: const EdgeInsets.all(8),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
+                children: [
+                  _buildStatItem('TỔNG SỐ', '${_leaderboard.length}'),
+                  _buildStatItem('TOP 1', _leaderboard.isNotEmpty ? '${_leaderboard[0].eloRating}' : '-'),
+                  _buildStatItem('TRUNG BÌNH', _leaderboard.isNotEmpty 
+                    ? '${(_leaderboard.map((u) => u.eloRating).reduce((a, b) => a + b) / _leaderboard.length).round()}' 
+                    : '-'),
+                ],
+              ),
+            ),
 
-          // Leaderboard list
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _leaderboard.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.leaderboard_outlined,
-                              size: 64,
-                              color: theme.colorScheme.onSurface.withOpacity(0.3),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Chưa có dữ liệu xếp hạng',
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.5),
+            // Leaderboard list
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _leaderboard.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.leaderboard_outlined,
+                                size: 64,
+                                color: PixelColors.textSecondary,
                               ),
-                            ),
-                          ],
-                        ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadLeaderboard,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(8),
-                          itemCount: _leaderboard.length,
-                          itemBuilder: (context, index) {
-                            final user = _leaderboard[index];
-                            final rank = index + 1;
-                            final isCurrentUser = _currentUserId != null && user.id == _currentUserId;
+                              const SizedBox(height: 16),
+                              PixelText(
+                                text: 'CHƯA CÓ DỮ LIỆU XẾP HẠNG',
+                                style: PixelTextStyle.title,
+                                color: PixelColors.textSecondary,
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadLeaderboard,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(8),
+                            itemCount: _leaderboard.length,
+                            itemBuilder: (context, index) {
+                              final user = _leaderboard[index];
+                              final rank = index + 1;
+                              final isCurrentUser = _currentUserId != null && user.id == _currentUserId;
 
-                            return _buildLeaderboardItem(user, rank, isCurrentUser, theme);
-                          },
+                              return _buildLeaderboardItem(user, rank, isCurrentUser);
+                            },
+                          ),
                         ),
-                      ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -185,160 +186,140 @@ class _LeaderboardScreenState extends State<LeaderboardScreen> {
   Widget _buildStatItem(String label, String value) {
     return Column(
       children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
+        PixelText(
+          text: value,
+          style: PixelTextStyle.headline,
+          color: PixelColors.primary,
         ),
         const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey.shade600,
-          ),
+        PixelText(
+          text: label,
+          style: PixelTextStyle.caption,
+          color: PixelColors.textSecondary,
         ),
       ],
     );
   }
 
-  Widget _buildLeaderboardItem(User user, int rank, bool isCurrentUser, ThemeData theme) {
+  Widget _buildLeaderboardItem(User user, int rank, bool isCurrentUser) {
     final rankColor = _getRankColor(rank);
     final rankIcon = _getRankIcon(rank);
     final rankLabel = _getRankLabel(rank);
 
-    return Card(
+    return PixelCard(
       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      color: isCurrentUser ? theme.colorScheme.primaryContainer : null,
-      elevation: isCurrentUser ? 4 : 2,
-      child: ListTile(
-        leading: Container(
-          width: 50,
-          height: 50,
-          decoration: BoxDecoration(
-            color: rankColor.withOpacity(0.2),
-            shape: BoxShape.circle,
-            border: Border.all(
-              color: rankColor,
-              width: 2,
-            ),
-          ),
-          child: Center(
-            child: rank <= 3
-                ? Text(
-                    rankLabel,
-                    style: TextStyle(
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                      color: rankColor,
-                    ),
-                  )
-                : Text(
-                    '#$rank',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
-                      color: rankColor,
-                    ),
-                  ),
-          ),
-        ),
-        title: Row(
-          children: [
-            Expanded(
-              child: Text(
-                user.username,
-                style: TextStyle(
-                  fontWeight: isCurrentUser ? FontWeight.bold : FontWeight.normal,
-                  fontSize: 16,
-                ),
+      backgroundColor: isCurrentUser ? PixelColors.accent.withOpacity(0.3) : PixelColors.card,
+      child: Row(
+        children: [
+          Container(
+            width: 50,
+            height: 50,
+            decoration: BoxDecoration(
+              color: rankColor.withOpacity(0.2),
+              border: Border.all(
+                color: rankColor,
+                width: 2,
               ),
             ),
-            if (isCurrentUser)
-              Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primary,
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: const Text(
-                  'Bạn',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 12,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+            child: Center(
+              child: PixelText(
+                text: rank <= 3 ? rankLabel : '#$rank',
+                style: rank <= 3 ? PixelTextStyle.headline : PixelTextStyle.subtitle,
+                color: rankColor,
               ),
-          ],
-        ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 4),
-            Row(
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Icon(Icons.star, size: 16, color: Colors.amber),
-                const SizedBox(width: 4),
-                Text(
-                  'ELO: ${user.eloRating}',
-                  style: TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.bold,
-                    color: theme.colorScheme.primary,
-                  ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: PixelText(
+                        text: user.username.toUpperCase(),
+                        style: PixelTextStyle.subtitle,
+                        color: isCurrentUser ? PixelColors.primary : PixelColors.textPrimary,
+                      ),
+                    ),
+                    if (isCurrentUser)
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: PixelColors.primary,
+                          border: Border.all(color: PixelColors.border, width: 2),
+                        ),
+                        child: PixelText(
+                          text: 'BẠN',
+                          style: PixelTextStyle.caption,
+                          color: PixelColors.background,
+                        ),
+                      ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(Icons.star, size: 16, color: PixelColors.warning),
+                    const SizedBox(width: 4),
+                    PixelText(
+                      text: 'ELO: ${user.eloRating}',
+                      style: PixelTextStyle.body,
+                      color: PixelColors.primary,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    PixelText(
+                      text: 'THẮNG: ${user.totalWins}',
+                      style: PixelTextStyle.caption,
+                      color: PixelColors.success,
+                    ),
+                    const SizedBox(width: 12),
+                    PixelText(
+                      text: 'THUA: ${user.totalLosses}',
+                      style: PixelTextStyle.caption,
+                      color: PixelColors.error,
+                    ),
+                    const SizedBox(width: 12),
+                    PixelText(
+                      text: 'HÒA: ${user.totalDraws}',
+                      style: PixelTextStyle.caption,
+                      color: PixelColors.warning,
+                    ),
+                  ],
                 ),
               ],
             ),
-            const SizedBox(height: 4),
-            Row(
+          ),
+            Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  'Thắng: ${user.totalWins}',
-                  style: TextStyle(fontSize: 12, color: Colors.green),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'Thua: ${user.totalLosses}',
-                  style: TextStyle(fontSize: 12, color: Colors.red),
-                ),
-                const SizedBox(width: 12),
-                Text(
-                  'Hòa: ${user.totalDraws}',
-                  style: TextStyle(fontSize: 12, color: Colors.orange),
-                ),
+                if (user.bestTime != null)
+                  PixelText(
+                    text: _formatTime(user.bestTime!),
+                    style: PixelTextStyle.caption,
+                    color: PixelColors.textSecondary,
+                  ),
+                if (user.isOnline)
+                  Container(
+                    margin: const EdgeInsets.only(top: 4),
+                    width: 8,
+                    height: 8,
+                    decoration: BoxDecoration(
+                      color: PixelColors.success,
+                      border: Border.all(color: PixelColors.border, width: 1),
+                    ),
+                  ),
               ],
             ),
           ],
         ),
-        trailing: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            if (user.bestTime != null)
-              Text(
-                _formatTime(user.bestTime!),
-                style: TextStyle(
-                  fontSize: 12,
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
-                ),
-              ),
-            if (user.isOnline)
-              Container(
-                margin: const EdgeInsets.only(top: 4),
-                width: 8,
-                height: 8,
-                decoration: const BoxDecoration(
-                  color: Colors.green,
-                  shape: BoxShape.circle,
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
+      );
   }
 
   String _formatTime(int milliseconds) {

@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../services/api_service.dart';
+import '../theme/pixel_colors.dart';
+import '../widgets/pixel_button.dart';
+import '../widgets/pixel_card.dart';
+import '../widgets/pixel_text.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -55,65 +59,68 @@ class _LoginScreenState extends State<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              theme.colorScheme.primary.withOpacity(0.1),
-              theme.colorScheme.secondary.withOpacity(0.1),
-            ],
-          ),
-        ),
-        child: SafeArea(
-          child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(24),
-              child: Form(
-                key: _formKey,
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    // Logo/Title
-                    Icon(
-                      Icons.sports_esports,
-                      size: 80,
-                      color: theme.colorScheme.primary,
+      backgroundColor: PixelColors.background,
+      body: SafeArea(
+        child: Center(
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Form(
+              key: _formKey,
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Logo/Title
+                  PixelCard(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      children: [
+                        Icon(
+                          Icons.sports_esports,
+                          size: 64,
+                          color: PixelColors.primary,
+                        ),
+                        const SizedBox(height: 16),
+                        PixelText(
+                          text: 'RUBIK MASTER',
+                          style: PixelTextStyle.headline,
+                          color: PixelColors.primary,
+                          textAlign: TextAlign.center,
+                        ),
+                        const SizedBox(height: 8),
+                        PixelText(
+                          text: 'ĐĂNG NHẬP ĐỂ THI ĐẤU',
+                          style: PixelTextStyle.body,
+                          color: PixelColors.textSecondary,
+                          textAlign: TextAlign.center,
+                        ),
+                      ],
                     ),
-                    const SizedBox(height: 16),
-                    Text(
-                      'Rubik Master',
-                      style: theme.textTheme.headlineLarge?.copyWith(
-                        fontWeight: FontWeight.bold,
-                        color: theme.colorScheme.primary,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Đăng nhập để thi đấu',
-                      style: theme.textTheme.bodyLarge?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.7),
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                    const SizedBox(height: 48),
+                  ),
+                  const SizedBox(height: 32),
 
-                    // Email field
-                    TextFormField(
+                  // Email field
+                  PixelCard(
+                    padding: EdgeInsets.zero,
+                    child: TextFormField(
                       controller: _emailController,
                       keyboardType: TextInputType.emailAddress,
+                      style: const TextStyle(
+                        fontFamily: 'VT323',
+                        fontSize: 20,
+                        color: PixelColors.textPrimary,
+                      ),
                       decoration: InputDecoration(
-                        labelText: 'Email',
-                        prefixIcon: const Icon(Icons.email),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
+                        labelText: 'EMAIL',
+                        labelStyle: const TextStyle(
+                          fontFamily: 'VT323',
+                          fontSize: 18,
+                          color: PixelColors.textSecondary,
                         ),
+                        prefixIcon: const Icon(Icons.email, color: PixelColors.primary),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.all(16),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -125,28 +132,41 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 16),
+                  ),
+                  const SizedBox(height: 16),
 
-                    // Password field
-                    TextFormField(
+                  // Password field
+                  PixelCard(
+                    padding: EdgeInsets.zero,
+                    child: TextFormField(
                       controller: _passwordController,
                       obscureText: _obscurePassword,
+                      style: const TextStyle(
+                        fontFamily: 'VT323',
+                        fontSize: 20,
+                        color: PixelColors.textPrimary,
+                      ),
                       decoration: InputDecoration(
-                        labelText: 'Mật khẩu',
-                        prefixIcon: const Icon(Icons.lock),
+                        labelText: 'MẬT KHẨU',
+                        labelStyle: const TextStyle(
+                          fontFamily: 'VT323',
+                          fontSize: 18,
+                          color: PixelColors.textSecondary,
+                        ),
+                        prefixIcon: const Icon(Icons.lock, color: PixelColors.primary),
                         suffixIcon: IconButton(
                           icon: Icon(
                             _obscurePassword
                                 ? Icons.visibility
                                 : Icons.visibility_off,
+                            color: PixelColors.primary,
                           ),
                           onPressed: () {
                             setState(() => _obscurePassword = !_obscurePassword);
                           },
                         ),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
+                        border: InputBorder.none,
+                        contentPadding: const EdgeInsets.all(16),
                       ),
                       validator: (value) {
                         if (value == null || value.isEmpty) {
@@ -158,37 +178,27 @@ class _LoginScreenState extends State<LoginScreen> {
                         return null;
                       },
                     ),
-                    const SizedBox(height: 24),
+                  ),
+                  const SizedBox(height: 24),
 
-                    // Login button
-                    ElevatedButton(
-                      onPressed: _isLoading ? null : _login,
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 16),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(12),
-                        ),
-                      ),
-                      child: _isLoading
-                          ? const SizedBox(
-                              height: 20,
-                              width: 20,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
-                          : const Text(
-                              'Đăng nhập',
-                              style: TextStyle(fontSize: 16),
-                            ),
-                    ),
-                    const SizedBox(height: 16),
+                  // Login button
+                  PixelButton(
+                    text: _isLoading ? 'ĐANG XỬ LÝ...' : 'ĐĂNG NHẬP',
+                    onPressed: _isLoading ? null : _login,
+                    backgroundColor: PixelColors.primary,
+                    isLarge: true,
+                  ),
+                  const SizedBox(height: 16),
 
-                    // Register link
-                    TextButton(
-                      onPressed: () => context.go('/register'),
-                      child: const Text('Chưa có tài khoản? Đăng ký'),
-                    ),
-                  ],
-                ),
+                  // Register link
+                  PixelButton(
+                    text: 'CHƯA CÓ TÀI KHOẢN? ĐĂNG KÝ',
+                    onPressed: () => context.go('/register'),
+                    backgroundColor: PixelColors.surface,
+                    textColor: PixelColors.primary,
+                    borderColor: PixelColors.primary,
+                  ),
+                ],
               ),
             ),
           ),

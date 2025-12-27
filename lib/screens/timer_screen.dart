@@ -6,10 +6,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:confetti/confetti.dart';
 import '../models/solve_time.dart';
+import '../theme/pixel_colors.dart';
 import '../utils/advanced_scramble_generator.dart';
 import '../utils/statistics.dart';
 import '../utils/difficulty_level.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+
+import '../widgets/pixel_header.dart';
 
 enum TimerState { idle, ready, inspection, running, finished }
 
@@ -386,25 +389,24 @@ class _TimerScreenState extends ConsumerState<TimerScreen>
     final theme = Theme.of(context);
 
     return Scaffold(
-      backgroundColor: theme.colorScheme.surface,
-      appBar: AppBar(
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
-          tooltip: 'Về trang chủ',
-        ),
-        title: const Text('Timer'),
-        backgroundColor: theme.colorScheme.surface,
-        elevation: 0,
-      ),
-      body: KeyboardListener(
-        focusNode: _focusNode,
-        onKeyEvent: (event) {
-          if (event.logicalKey == LogicalKeyboardKey.space) {
-            _handleSpacePress(event is KeyDownEvent);
-          }
-        },
-        child: SafeArea(
+      backgroundColor: PixelColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            PixelHeader(
+              title: 'TIMER',
+              showBackButton: true,
+              onBackPressed: () => context.go('/'),
+            ),
+            Expanded(
+              child: KeyboardListener(
+                focusNode: _focusNode,
+                onKeyEvent: (event) {
+                  if (event.logicalKey == LogicalKeyboardKey.space) {
+                    _handleSpacePress(event is KeyDownEvent);
+                  }
+                },
+                child: SafeArea(
           child: Stack(
             children: [
               // Confetti
@@ -451,6 +453,10 @@ class _TimerScreenState extends ConsumerState<TimerScreen>
               ),
             ],
           ),
+        ),
+      ),
+            ),
+          ],
         ),
       ),
     );

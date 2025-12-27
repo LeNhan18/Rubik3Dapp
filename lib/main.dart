@@ -18,6 +18,7 @@ import 'screens/leaderboard_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/friend_chat_screen.dart';
 import 'models/user.dart';
+import 'theme/pixel_theme.dart';
 
 
 
@@ -143,6 +144,7 @@ class RubikMasterApp extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     return MaterialApp.router(
       debugShowCheckedModeBanner: false,
+      theme: PixelTheme.lightTheme,
       routerConfig: _router,
       // Đảm bảo nội dung không tràn lên status bar
       builder: (context, child) {

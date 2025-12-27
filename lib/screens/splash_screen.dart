@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../theme/pixel_colors.dart';
+import '../widgets/pixel_text.dart';
 
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
@@ -97,19 +99,12 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: PixelColors.background,
       body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF1E3A8A), // Deep blue
-              Color(0xFF3B82F6), // Blue
-              Color(0xFF60A5FA), // Light blue
-            ],
-          ),
+          color: PixelColors.primary,
         ),
         child: SafeArea(
           child: Column(
@@ -185,30 +180,16 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                     opacity: _fadeAnimation,
                     child: Column(
                       children: [
-                        Text(
-                          'RUBIK MASTER',
-                          style: GoogleFonts.orbitron(
-                            fontSize: 32,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                            letterSpacing: 3,
-                            shadows: [
-                              Shadow(
-                                color: Colors.black.withOpacity(0.5),
-                                offset: const Offset(2, 2),
-                                blurRadius: 4,
-                              ),
-                            ],
-                          ),
+                        PixelText(
+                          text: 'RUBIK MASTER',
+                          style: PixelTextStyle.display,
+                          color: PixelColors.background,
                         ),
                         const SizedBox(height: 12),
-                        Text(
-                          'Khám phá thế giới Rubik',
-                          style: GoogleFonts.roboto(
-                            fontSize: 16,
-                            color: Colors.white.withOpacity(0.9),
-                            letterSpacing: 1,
-                          ),
+                        PixelText(
+                          text: 'KHÁM PHÁ THẾ GIỚI RUBIK',
+                          style: PixelTextStyle.body,
+                          color: PixelColors.background.withOpacity(0.9),
                         ),
                       ],
                     ),
@@ -237,12 +218,10 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                           ),
                         ),
                         const SizedBox(height: 16),
-                        Text(
-                          'Đang khởi tạo...',
-                          style: GoogleFonts.roboto(
-                            fontSize: 14,
-                            color: Colors.white.withOpacity(0.7),
-                          ),
+                        PixelText(
+                          text: 'ĐANG KHỞI TẠO...',
+                          style: PixelTextStyle.caption,
+                          color: PixelColors.background.withOpacity(0.7),
                         ),
                       ],
                     ),

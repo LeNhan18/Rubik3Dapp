@@ -3,6 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
+import '../theme/pixel_colors.dart';
+import '../widgets/pixel_button.dart';
+import '../widgets/pixel_card.dart';
+import '../widgets/pixel_header.dart';
+import '../widgets/pixel_text.dart';
 
 class FriendsScreen extends StatefulWidget {
   const FriendsScreen({super.key});
@@ -199,53 +204,63 @@ class _FriendsScreenState extends State<FriendsScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      extendBodyBehindAppBar: false, // Đảm bảo không tràn lên status bar
-      appBar: AppBar(
-        title: const Text('Bạn bè'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
-        ),
-      ),
-      body: Column(
-        children: [
-          // Search bar
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Tìm kiếm người dùng...',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isNotEmpty
-                    ? IconButton(
-                        icon: const Icon(Icons.clear),
-                        onPressed: () {
-                          _searchController.clear();
-                          _searchUsers('');
-                        },
-                      )
-                    : null,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+      backgroundColor: PixelColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            PixelHeader(
+              title: 'BẠN BÈ',
+              showBackButton: true,
+              onBackPressed: () => context.go('/'),
+            ),
+            // Search bar
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: PixelCard(
+                padding: EdgeInsets.zero,
+                child: TextField(
+                  controller: _searchController,
+                  style: const TextStyle(
+                    fontFamily: 'VT323',
+                    fontSize: 20,
+                    color: PixelColors.textPrimary,
+                  ),
+                  decoration: InputDecoration(
+                    hintText: 'TÌM KIẾM NGƯỜI DÙNG...',
+                    hintStyle: const TextStyle(
+                      fontFamily: 'VT323',
+                      fontSize: 18,
+                      color: PixelColors.textLight,
+                    ),
+                    prefixIcon: const Icon(Icons.search, color: PixelColors.primary),
+                    suffixIcon: _searchController.text.isNotEmpty
+                        ? IconButton(
+                            icon: const Icon(Icons.clear, color: PixelColors.primary),
+                            onPressed: () {
+                              _searchController.clear();
+                              _searchUsers('');
+                            },
+                          )
+                        : null,
+                    border: InputBorder.none,
+                    contentPadding: const EdgeInsets.all(16),
+                  ),
+                  onChanged: _searchUsers,
                 ),
               ),
-              onChanged: _searchUsers,
             ),
-          ),
 
-          // Content
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _searchController.text.isNotEmpty
-                    ? _buildSearchResults()
-                    : _buildMainContent(),
-          ),
-        ],
+            // Content
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _searchController.text.isNotEmpty
+                      ? _buildSearchResults()
+                      : _buildMainContent(),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -255,11 +270,21 @@ class _FriendsScreenState extends State<FriendsScreen> {
       length: 2,
       child: Column(
         children: [
-          const TabBar(
-            tabs: [
-              Tab(text: 'Bạn bè'),
-              Tab(text: 'Lời mời'),
-            ],
+          Container(
+            decoration: const BoxDecoration(
+              border: Border(
+                bottom: BorderSide(color: PixelColors.border, width: 2),
+              ),
+            ),
+            child: TabBar(
+              labelColor: PixelColors.primary,
+              unselectedLabelColor: PixelColors.textSecondary,
+              indicatorColor: PixelColors.primary,
+              tabs: const [
+                Tab(text: 'BẠN BÈ'),
+                Tab(text: 'LỜI MỜI'),
+              ],
+            ),
           ),
           Expanded(
             child: TabBarView(
@@ -275,8 +300,6 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   Widget _buildFriendsList() {
-    final theme = Theme.of(context);
-
     if (_friends.isEmpty) {
       return Center(
         child: Column(
@@ -285,21 +308,19 @@ class _FriendsScreenState extends State<FriendsScreen> {
             Icon(
               Icons.people_outline,
               size: 64,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: PixelColors.textSecondary,
             ),
             const SizedBox(height: 16),
-            Text(
-              'Chưa có bạn bè nào',
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
-              ),
+            PixelText(
+              text: 'CHƯA CÓ BẠN BÈ NÀO',
+              style: PixelTextStyle.title,
+              color: PixelColors.textSecondary,
             ),
             const SizedBox(height: 8),
-            Text(
-              'Tìm kiếm để thêm bạn bè',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
-              ),
+            PixelText(
+              text: 'TÌM KIẾM ĐỂ THÊM BẠN BÈ',
+              style: PixelTextStyle.body,
+              color: PixelColors.textLight,
             ),
           ],
         ),
@@ -316,8 +337,6 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   Widget _buildPendingRequestsList() {
-    final theme = Theme.of(context);
-
     if (_isLoadingPending) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -330,14 +349,13 @@ class _FriendsScreenState extends State<FriendsScreen> {
             Icon(
               Icons.person_add_outlined,
               size: 64,
-              color: theme.colorScheme.onSurface.withOpacity(0.3),
+              color: PixelColors.textSecondary,
             ),
             const SizedBox(height: 16),
-            Text(
-              'Chưa có lời mời nào',
-              style: theme.textTheme.titleLarge?.copyWith(
-                color: theme.colorScheme.onSurface.withOpacity(0.5),
-              ),
+            PixelText(
+              text: 'CHƯA CÓ LỜI MỜI NÀO',
+              style: PixelTextStyle.title,
+              color: PixelColors.textSecondary,
             ),
           ],
         ),
@@ -355,37 +373,57 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   Widget _buildPendingRequestCard(Map<String, dynamic> request) {
-    final theme = Theme.of(context);
     final friendshipId = request['id'] as int;
     // user1 là người gửi request, user2 là người nhận (current user)
     final senderUsername = request['user1_username'] as String? ?? 'Unknown';
 
-    return Card(
+    return PixelCard(
       margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: theme.colorScheme.primary,
-          child: Text(
-            senderUsername.substring(0, 1).toUpperCase(),
-            style: const TextStyle(color: Colors.white),
-          ),
-        ),
-        title: Text(senderUsername),
-        subtitle: const Text('Đã gửi lời mời kết bạn'),
-        trailing: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ElevatedButton.icon(
-              icon: const Icon(Icons.check, size: 16),
-              label: const Text('Chấp nhận'),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green,
-                foregroundColor: Colors.white,
-              ),
-              onPressed: () => _acceptFriendRequest(friendshipId),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: PixelColors.primary,
+              border: Border.all(color: PixelColors.border, width: 2),
             ),
-          ],
-        ),
+            child: Center(
+              child: PixelText(
+                text: senderUsername.substring(0, 1).toUpperCase(),
+                style: PixelTextStyle.title,
+                color: PixelColors.background,
+              ),
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                PixelText(
+                  text: senderUsername.toUpperCase(),
+                  style: PixelTextStyle.subtitle,
+                ),
+                PixelText(
+                  text: 'ĐÃ GỬI LỜI MỜI KẾT BẠN',
+                  style: PixelTextStyle.caption,
+                  color: PixelColors.textSecondary,
+                ),
+              ],
+            ),
+          ),
+          PixelButton(
+            text: 'CHẤP NHẬN',
+            onPressed: () => _acceptFriendRequest(friendshipId),
+            icon: Icons.check,
+            backgroundColor: PixelColors.success,
+            width: 120,
+            height: 36,
+            borderWidth: 2,
+            shadowOffset: 2,
+          ),
+        ],
       ),
     );
   }
@@ -396,8 +434,12 @@ class _FriendsScreenState extends State<FriendsScreen> {
     }
 
     if (_searchResults.isEmpty) {
-      return const Center(
-        child: Text('Không tìm thấy người dùng nào'),
+      return Center(
+        child: PixelText(
+          text: 'KHÔNG TÌM THẤY NGƯỜI DÙNG NÀO',
+          style: PixelTextStyle.title,
+          color: PixelColors.textSecondary,
+        ),
       );
     }
 
@@ -411,108 +453,129 @@ class _FriendsScreenState extends State<FriendsScreen> {
   }
 
   Widget _buildUserCard(User user, {required bool isFriend}) {
-    final theme = Theme.of(context);
     // Kiểm tra xem user có phải là bạn không (trong danh sách _friends)
     final isActuallyFriend = _friends.any((friend) => friend.id == user.id);
 
-    return Card(
+    return PixelCard(
       margin: const EdgeInsets.only(bottom: 12),
-      child: ListTile(
-        leading: CircleAvatar(
-          backgroundColor: theme.colorScheme.primary,
-          child: Text(
-            user.username.substring(0, 1).toUpperCase(),
-            style: const TextStyle(color: Colors.white),
+      child: Row(
+        children: [
+          Container(
+            width: 48,
+            height: 48,
+            decoration: BoxDecoration(
+              color: PixelColors.primary,
+              border: Border.all(color: PixelColors.border, width: 2),
+            ),
+            child: Center(
+              child: PixelText(
+                text: user.username.substring(0, 1).toUpperCase(),
+                style: PixelTextStyle.title,
+                color: PixelColors.background,
+              ),
+            ),
           ),
-        ),
-        title: Text(user.username),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(user.email),
-            const SizedBox(height: 4),
-            Row(
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                if (user.isOnline)
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.green,
-                      shape: BoxShape.circle,
+                PixelText(
+                  text: user.username.toUpperCase(),
+                  style: PixelTextStyle.subtitle,
+                ),
+                PixelText(
+                  text: user.email.toUpperCase(),
+                  style: PixelTextStyle.caption,
+                  color: PixelColors.textSecondary,
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Container(
+                      width: 8,
+                      height: 8,
+                      decoration: BoxDecoration(
+                        color: user.isOnline ? PixelColors.success : PixelColors.textLight,
+                        border: Border.all(color: PixelColors.border, width: 1),
+                      ),
                     ),
-                  )
-                else
-                  Container(
-                    width: 8,
-                    height: 8,
-                    decoration: const BoxDecoration(
-                      color: Colors.grey,
-                      shape: BoxShape.circle,
+                    const SizedBox(width: 4),
+                    PixelText(
+                      text: user.isOnline ? 'ĐANG ONLINE' : 'OFFLINE',
+                      style: PixelTextStyle.caption,
+                      color: PixelColors.textSecondary,
                     ),
-                  ),
-                const SizedBox(width: 4),
-                Text(
-                  user.isOnline ? 'Đang online' : 'Offline',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
-                  ),
+                  ],
                 ),
               ],
             ),
-          ],
-        ),
-        trailing: (isFriend || isActuallyFriend)
-            ? PopupMenuButton<String>(
-                icon: const Icon(Icons.more_vert),
-                onSelected: (value) {
-                  if (value == 'chat') {
-                    context.push('/chat', extra: user);
-                  } else if (value == 'challenge') {
-                    _challengeUser(user);
-                  } else if (value == 'profile') {
-                    context.push('/profile?userId=${user.id}');
-                  }
-                },
-                itemBuilder: (context) => [
-                  const PopupMenuItem(
-                    value: 'chat',
-                    child: Row(
-                      children: [
-                        Icon(Icons.chat, size: 20),
-                        SizedBox(width: 8),
-                        Text('Nhắn tin'),
-                      ],
+          ),
+          (isFriend || isActuallyFriend)
+              ? PopupMenuButton<String>(
+                  icon: const Icon(Icons.more_vert, color: PixelColors.primary),
+                  onSelected: (value) {
+                    if (value == 'chat') {
+                      context.push('/chat', extra: user);
+                    } else if (value == 'challenge') {
+                      _challengeUser(user);
+                    } else if (value == 'profile') {
+                      context.push('/profile?userId=${user.id}');
+                    }
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'chat',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.chat, size: 16),
+                          const SizedBox(width: 8),
+                          PixelText(
+                            text: 'Nhắn tin',
+                            style: PixelTextStyle.caption,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'challenge',
-                    child: Row(
-                      children: [
-                        Icon(Icons.sports_esports, size: 20),
-                        SizedBox(width: 8),
-                        Text('Thách đấu'),
-                      ],
+                    PopupMenuItem(
+                      value: 'challenge',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.sports_esports, size: 16),
+                          const SizedBox(width: 8),
+                          PixelText(
+                            text: 'Thách đấu',
+                            style: PixelTextStyle.caption,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                  const PopupMenuItem(
-                    value: 'profile',
-                    child: Row(
-                      children: [
-                        Icon(Icons.person, size: 20),
-                        SizedBox(width: 8),
-                        Text('Xem hồ sơ'),
-                      ],
+                    PopupMenuItem(
+                      value: 'profile',
+                      child: Row(
+                        children: [
+                          const Icon(Icons.person, size: 16),
+                          const SizedBox(width: 8),
+                          PixelText(
+                            text: 'Xem hồ sơ',
+                            style: PixelTextStyle.caption,
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
-              )
-            : ElevatedButton.icon(
-                icon: const Icon(Icons.person_add, size: 16),
-                label: const Text('Thêm bạn'),
-                onPressed: () => _sendFriendRequest(user),
-              ),
+                  ],
+                )
+              : PixelButton(
+                  text: 'THÊM BẠN',
+                  onPressed: () => _sendFriendRequest(user),
+                  icon: Icons.person_add,
+                  backgroundColor: PixelColors.accent,
+                  width: 100,
+                  height: 36,
+                  borderWidth: 2,
+                  shadowOffset: 2,
+                ),
+        ],
       ),
     );
   }

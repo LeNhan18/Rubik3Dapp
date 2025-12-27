@@ -11,6 +11,11 @@ import '../services/api_service.dart';
 import '../services/websocket_service.dart';
 import '../widgets/rubik_scene.dart';
 import '../services/rubik_rotation_service.dart';
+import '../theme/pixel_colors.dart';
+import '../widgets/pixel_button.dart';
+import '../widgets/pixel_card.dart';
+import '../widgets/pixel_header.dart';
+import '../widgets/pixel_text.dart';
 
 class MatchDetailScreen extends StatefulWidget {
   final String matchId;
@@ -800,31 +805,37 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
     final opponentTime = isPlayer1 ? _match!.player2Time : _match!.player1Time;
 
     return Scaffold(
-      extendBodyBehindAppBar: false,
-      appBar: AppBar(
-        title: Text('Trận đấu #${_match!.matchId.substring(0, 8)}'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/matches'),
-        ),
-        actions: [
-          Chip(
-            label: Text(_match!.status.displayName),
-            backgroundColor: _match!.isActive
-                ? Colors.green.withOpacity(0.2)
-                : _match!.isCompleted
-                    ? Colors.blue.withOpacity(0.2)
-                    : Colors.orange.withOpacity(0.2),
-          ),
-          const SizedBox(width: 8),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Match info and scramble
-          Container(
-            padding: const EdgeInsets.all(16),
-            color: theme.colorScheme.surface,
+      backgroundColor: PixelColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            PixelHeader(
+              title: 'TRẬN ĐẤU #${_match!.matchId.substring(0, 8)}',
+              showBackButton: true,
+              onBackPressed: () => context.go('/matches'),
+              actions: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: _match!.isActive
+                        ? PixelColors.success
+                        : _match!.isCompleted
+                            ? PixelColors.info
+                            : PixelColors.warning,
+                    border: Border.all(color: PixelColors.border, width: 2),
+                  ),
+                  child: PixelText(
+                    text: _match!.status.displayName.toUpperCase(),
+                    style: PixelTextStyle.caption,
+                    color: PixelColors.background,
+                  ),
+                ),
+              ],
+            ),
+            // Match info and scramble
+            PixelCard(
+              padding: const EdgeInsets.all(16),
+              backgroundColor: PixelColors.surface,
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -1076,6 +1087,7 @@ class _MatchDetailScreenState extends State<MatchDetailScreen> with TickerProvid
           ),
         ],
       ),
+    ),
     );
   }
 

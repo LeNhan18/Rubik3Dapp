@@ -3,6 +3,11 @@ import 'package:go_router/go_router.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/match.dart';
 import '../services/api_service.dart';
+import '../theme/pixel_colors.dart';
+import '../widgets/pixel_button.dart';
+import '../widgets/pixel_card.dart';
+import '../widgets/pixel_header.dart';
+import '../widgets/pixel_text.dart';
 
 class MatchListScreen extends StatefulWidget {
   const MatchListScreen({super.key});
@@ -84,176 +89,185 @@ class _MatchListScreenState extends State<MatchListScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return Scaffold(
-      extendBodyBehindAppBar: false,
-      appBar: AppBar(
-        title: const Text('Trận đấu của tôi'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.go('/'),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh),
-            onPressed: _loadMatches,
-          ),
-        ],
-      ),
-      body: Column(
-        children: [
-          // Filter chips
-          Container(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Row(
-                children: [
-                  _buildFilterChip('Tất cả', null),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Chờ bắt đầu', 'waiting'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Đang thi đấu', 'active'),
-                  const SizedBox(width: 8),
-                  _buildFilterChip('Hoàn thành', 'completed'),
-                ],
+      backgroundColor: PixelColors.background,
+      body: SafeArea(
+        child: Column(
+          children: [
+            PixelHeader(
+              title: 'TRẬN ĐẤU CỦA TÔI',
+              showBackButton: true,
+              onBackPressed: () => context.go('/'),
+              actions: [
+                PixelButton(
+                  text: '↻',
+                  onPressed: _loadMatches,
+                  backgroundColor: PixelColors.primaryDark,
+                  width: 40,
+                  height: 40,
+                  borderWidth: 2,
+                  shadowOffset: 2,
+                ),
+              ],
+            ),
+            // Filter chips
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              child: SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Row(
+                  children: [
+                    _buildFilterChip('TẤT CẢ', null),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('CHỜ BẮT ĐẦU', 'waiting'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('ĐANG THI ĐẤU', 'active'),
+                    const SizedBox(width: 8),
+                    _buildFilterChip('HOÀN THÀNH', 'completed'),
+                  ],
+                ),
               ),
             ),
-          ),
-          const Divider(),
 
-          // Match list
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
-                : _matches.isEmpty
-                    ? Center(
-                        child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.sports_esports,
-                              size: 64,
-                              color: theme.colorScheme.onSurface.withOpacity(0.3),
-                            ),
-                            const SizedBox(height: 16),
-                            Text(
-                              'Chưa có trận đấu nào',
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                color: theme.colorScheme.onSurface.withOpacity(0.5),
+            // Match list
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : _matches.isEmpty
+                      ? Center(
+                          child: Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(
+                                Icons.sports_esports,
+                                size: 64,
+                                color: PixelColors.textSecondary,
                               ),
-                            ),
-                            const SizedBox(height: 8),
-                            ElevatedButton.icon(
-                              onPressed: () => _createMatch(),
-                              icon: const Icon(Icons.add),
-                              label: const Text('Tìm đối thủ'),
-                            ),
-                          ],
+                              const SizedBox(height: 16),
+                              PixelText(
+                                text: 'CHƯA CÓ TRẬN ĐẤU NÀO',
+                                style: PixelTextStyle.title,
+                                color: PixelColors.textSecondary,
+                              ),
+                              const SizedBox(height: 16),
+                              PixelButton(
+                                text: 'TÌM ĐỐI THỦ',
+                                onPressed: () => _createMatch(),
+                                icon: Icons.add,
+                              ),
+                            ],
+                          ),
+                        )
+                      : RefreshIndicator(
+                          onRefresh: _loadMatches,
+                          child: ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: _matches.length,
+                            itemBuilder: (context, index) {
+                              return _buildMatchCard(_matches[index]);
+                            },
+                          ),
                         ),
-                      )
-                    : RefreshIndicator(
-                        onRefresh: _loadMatches,
-                        child: ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: _matches.length,
-                          itemBuilder: (context, index) {
-                            return _buildMatchCard(_matches[index]);
-                          },
-                        ),
-                      ),
-          ),
-        ],
+            ),
+          ],
+        ),
       ),
-      floatingActionButton: FloatingActionButton.extended(
+      floatingActionButton: PixelButton(
+        text: 'TẠO TRẬN ĐẤU',
         onPressed: () => _showCreateMatchDialog(),
-        icon: const Icon(Icons.add),
-        label: const Text('Tạo trận đấu'),
+        icon: Icons.add,
+        backgroundColor: PixelColors.accent,
+        isLarge: true,
       ),
     );
   }
 
   Widget _buildFilterChip(String label, String? status) {
     final isSelected = _selectedStatus == status;
-    return FilterChip(
-      label: Text(label),
-      selected: isSelected,
-      onSelected: (selected) {
+    return PixelButton(
+      text: label,
+      onPressed: () {
         setState(() {
-          _selectedStatus = selected ? status : null;
+          _selectedStatus = isSelected ? null : status;
         });
         _loadMatches();
       },
+      backgroundColor: isSelected ? PixelColors.primary : PixelColors.surface,
+      textColor: isSelected ? PixelColors.background : PixelColors.textPrimary,
+      borderColor: PixelColors.border,
+      width: null,
+      height: 36,
+      borderWidth: 2,
+      shadowOffset: 2,
     );
   }
 
   Widget _buildMatchCard(Match match) {
-    final theme = Theme.of(context);
     final isActive = match.isActive;
     final isCompleted = match.isCompleted;
 
-    return Card(
+    return PixelCard(
       margin: const EdgeInsets.only(bottom: 12),
       child: InkWell(
         onTap: () => context.go('/match/${match.matchId}'),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Expanded(
-                    child: Text(
-                      match.status.displayName,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        color: isActive
-                            ? Colors.green
-                            : isCompleted
-                                ? Colors.blue
-                                : theme.colorScheme.onSurface,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
-                  if (isCompleted && match.winnerId != null)
-                    Chip(
-                      label: Text(
-                        match.isDraw ? 'Hòa' : 'Đã có kết quả',
-                        style: const TextStyle(fontSize: 12),
-                      ),
-                      backgroundColor: match.isDraw
-                          ? Colors.orange.withOpacity(0.2)
-                          : Colors.green.withOpacity(0.2),
-                    ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  Expanded(
-                    child: _buildPlayerInfo('Player 1', match.player1Time),
-                  ),
-                  const Text('VS'),
-                  Expanded(
-                    child: _buildPlayerInfo('Player 2', match.player2Time),
-                  ),
-                ],
-              ),
-              if (match.startedAt != null) ...[
-                const SizedBox(height: 8),
-                Text(
-                  'Bắt đầu: ${_formatDateTime(match.startedAt!)}',
-                  style: theme.textTheme.bodySmall?.copyWith(
-                    color: theme.colorScheme.onSurface.withOpacity(0.6),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Expanded(
+                  child: PixelText(
+                    text: match.status.displayName.toUpperCase(),
+                    style: PixelTextStyle.subtitle,
+                    color: isActive
+                        ? PixelColors.success
+                        : isCompleted
+                            ? PixelColors.info
+                            : PixelColors.textPrimary,
                   ),
                 ),
+                if (isCompleted && match.winnerId != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: match.isDraw ? PixelColors.warning : PixelColors.success,
+                      border: Border.all(color: PixelColors.border, width: 2),
+                    ),
+                    child: PixelText(
+                      text: match.isDraw ? 'HÒA' : 'KẾT QUẢ',
+                      style: PixelTextStyle.caption,
+                      color: PixelColors.background,
+                    ),
+                  ),
               ],
+            ),
+            const SizedBox(height: 12),
+            Row(
+              children: [
+                Expanded(
+                  child: _buildPlayerInfo('PLAYER 1', match.player1Time),
+                ),
+                PixelText(
+                  text: 'VS',
+                  style: PixelTextStyle.title,
+                  color: PixelColors.textSecondary,
+                ),
+                Expanded(
+                  child: _buildPlayerInfo('PLAYER 2', match.player2Time),
+                ),
+              ],
+            ),
+            if (match.startedAt != null) ...[
+              const SizedBox(height: 8),
+              PixelText(
+                text: 'BẮT ĐẦU: ${_formatDateTime(match.startedAt!)}',
+                style: PixelTextStyle.caption,
+                color: PixelColors.textSecondary,
+              ),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -263,17 +277,16 @@ class _MatchListScreenState extends State<MatchListScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          label,
-          style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+        PixelText(
+          text: label,
+          style: PixelTextStyle.caption,
+          color: PixelColors.textSecondary,
         ),
         const SizedBox(height: 4),
-        Text(
-          time != null ? _formatTime(time) : 'Chưa nộp',
-          style: TextStyle(
-            fontSize: 14,
-            color: time != null ? Colors.blue : Colors.grey,
-          ),
+        PixelText(
+          text: time != null ? _formatTime(time) : 'CHƯA NỘP',
+          style: PixelTextStyle.body,
+          color: time != null ? PixelColors.info : PixelColors.textLight,
         ),
       ],
     );
@@ -296,26 +309,35 @@ class _MatchListScreenState extends State<MatchListScreen> {
   void _showCreateMatchDialog() {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Tạo trận đấu'),
-        content: Column(
+      builder: (context) => PixelCard(
+        padding: const EdgeInsets.all(24),
+        child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            ListTile(
-              leading: const Icon(Icons.shuffle),
-              title: const Text('Tìm đối thủ ngẫu nhiên'),
-              onTap: () {
+            PixelText(
+              text: 'TẠO TRẬN ĐẤU',
+              style: PixelTextStyle.headline,
+              color: PixelColors.primary,
+            ),
+            const SizedBox(height: 24),
+            PixelButton(
+              text: 'TÌM ĐỐI THỦ NGẪU NHIÊN',
+              onPressed: () {
                 Navigator.pop(context);
                 _createMatch();
               },
+              icon: Icons.shuffle,
+              isLarge: true,
             ),
-            ListTile(
-              leading: const Icon(Icons.person_add),
-              title: const Text('Thách đấu bạn bè'),
-              onTap: () {
+            const SizedBox(height: 12),
+            PixelButton(
+              text: 'THÁCH ĐẤU BẠN BÈ',
+              onPressed: () {
                 Navigator.pop(context);
                 context.go('/friends');
               },
+              icon: Icons.person_add,
+              isLarge: true,
             ),
           ],
         ),

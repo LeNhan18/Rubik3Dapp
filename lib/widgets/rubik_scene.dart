@@ -8,6 +8,10 @@ class RubikScene extends StatefulWidget {
   final Function(ScaleStartDetails) onScaleStart;
   final Function(ScaleUpdateDetails) onScaleUpdate;
   final Function(ScaleEndDetails) onScaleEnd;
+  // Callbacks cho pan gesture (để xoay Rubik)
+  final Function(DragStartDetails, Size)? onPanStart;
+  final Function(DragUpdateDetails)? onPanUpdate;
+  final Function(DragEndDetails)? onPanEnd;
 
   const RubikScene({
     Key? key,
@@ -15,6 +19,9 @@ class RubikScene extends StatefulWidget {
     required this.onScaleStart,
     required this.onScaleUpdate,
     required this.onScaleEnd,
+    this.onPanStart,
+    this.onPanUpdate,
+    this.onPanEnd,
   }) : super(key: key);
 
   @override
@@ -23,20 +30,86 @@ class RubikScene extends StatefulWidget {
 
 class _RubikSceneState extends State<RubikScene> {
   Scene? _scene;
+  int _pointerCount = 0; // Theo dõi số lượng pointer
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onScaleStart: widget.onScaleStart,
-      onScaleUpdate: widget.onScaleUpdate,
-      onScaleEnd: widget.onScaleEnd,
-      child: Cube(
-        onSceneCreated: (Scene scene) {
-          _scene = scene;
-          widget.onSceneCreated(scene);
-        },
-        interactive: false,
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final screenSize = Size(constraints.maxWidth, constraints.maxHeight);
+        // Chỉ dùng onScale* và phân biệt single touch (pan) vs multi-touch (scale)
+        // Flutter không cho phép dùng cả onPan* và onScale* cùng lúc
+        // 
+        // QUAN TRỌNG: Logic xoay camera (xoay xung quanh Rubik) vẫn được giữ nguyên!
+        // - 2 ngón tay trở lên = scale gesture = xoay camera xung quanh Rubik
+        // - 1 ngón tay = pan gesture = xoay Rubik
+        // Dùng Listener để theo dõi số lượng pointer chính xác
+        return Listener(
+          onPointerDown: (event) {
+            // Lưu số lượng pointer để phân biệt single touch vs multi-touch
+            _pointerCount = event.pointer;
+          },
+          child: GestureDetector(
+            onScaleStart: (details) {
+              // Nếu có 2 ngón tay trở lên = scale gesture = xoay camera xung quanh Rubik
+              // Logic này vẫn được giữ nguyên, không thay đổi
+              if (details.pointerCount >= 2) {
+                widget.onScaleStart(details);
+              } else if (widget.onPanStart != null) {
+                // Single touch = pan gesture = xoay Rubik
+                // Không cần kiểm tra pointerCount == 1, vì nếu không >= 2 thì là single touch
+                // Convert ScaleStartDetails sang DragStartDetails
+                final dragDetails = DragStartDetails(
+                  globalPosition: details.focalPoint,
+                  localPosition: details.localFocalPoint,
+                );
+                widget.onPanStart!(dragDetails, screenSize);
+              }
+            },
+            onScaleUpdate: (details) {
+              // Nếu có 2 ngón tay trở lên = scale gesture = xoay camera xung quanh Rubik
+              // Logic này vẫn được giữ nguyên, không thay đổi
+              if (details.pointerCount >= 2) {
+                widget.onScaleUpdate(details);
+              } else if (widget.onPanUpdate != null) {
+                // Single touch = pan gesture = xoay Rubik
+                // Không cần kiểm tra pointerCount == 1, vì nếu không >= 2 thì là single touch
+                // Convert ScaleUpdateDetails sang DragUpdateDetails
+                final dragDetails = DragUpdateDetails(
+                  globalPosition: details.focalPoint,
+                  localPosition: details.localFocalPoint,
+                  delta: details.focalPointDelta,
+                );
+                widget.onPanUpdate!(dragDetails);
+              }
+            },
+            onScaleEnd: (details) {
+              // Nếu có 2 ngón tay trở lên = scale gesture = xoay camera xung quanh Rubik
+              // Logic này vẫn được giữ nguyên, không thay đổi
+              if (details.pointerCount >= 2) {
+                widget.onScaleEnd(details);
+              } else if (widget.onPanEnd != null) {
+                // Single touch = pan gesture = xoay Rubik
+                // Không cần kiểm tra pointerCount == 1, vì nếu không >= 2 thì là single touch
+                // Convert ScaleEndDetails sang DragEndDetails
+                final dragDetails = DragEndDetails(
+                  velocity: Velocity.zero,
+                );
+                widget.onPanEnd!(dragDetails);
+              }
+            },
+            // Thêm behavior để đảm bảo gesture được nhận diện
+            behavior: HitTestBehavior.opaque,
+            child: Cube(
+              onSceneCreated: (Scene scene) {
+                _scene = scene;
+                widget.onSceneCreated(scene);
+              },
+              interactive: false,
+            ),
+          ),
+        );
+      },
     );
   }
 }

@@ -6,6 +6,9 @@ import '../models/user.dart';
 import '../models/chat_message.dart';
 import '../services/api_service.dart';
 import '../services/websocket_service.dart';
+import '../theme/pixel_colors.dart';
+import '../widgets/pixel_header.dart';
+import '../widgets/pixel_text.dart';
 
 class FriendChatScreen extends StatefulWidget {
   final User friend;
@@ -37,7 +40,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   Future<void> _checkAuthAndLoad() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString('access_token');
-    
+
     if (token == null || token.isEmpty) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -70,8 +73,8 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
       // Tìm match hiện có giữa 2 user
       final matches = await _apiService.getMyMatches();
       final existingMatch = matches.firstWhere(
-        (match) =>
-            (match.player1Id == _currentUser!.id && match.player2Id == widget.friend.id) ||
+            (match) =>
+        (match.player1Id == _currentUser!.id && match.player2Id == widget.friend.id) ||
             (match.player1Id == widget.friend.id && match.player2Id == _currentUser!.id),
         orElse: () => throw Exception('No match found'),
       );
@@ -105,12 +108,12 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
 
         // Cancel previous subscription if exists
         await _wsSubscription?.cancel();
-        
+
         // Listen to WebSocket messages
         _wsSubscription = _wsService.messageStream?.listen(
-          (data) {
+              (data) {
             if (!mounted) return;
-            
+
             if (data['type'] == 'chat' && data['match_id'] == _chatMatchId) {
               // Check if message already exists to avoid duplicates
               final newMessage = ChatMessage(
@@ -122,14 +125,14 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                 createdAt: DateTime.parse(data['timestamp'] as String),
                 senderUsername: data['sender_username'] as String?,
               );
-              
+
               // Check for duplicates
-              final exists = _messages.any((msg) => 
-                msg.senderId == newMessage.senderId &&
-                msg.content == newMessage.content &&
-                msg.createdAt.difference(newMessage.createdAt).inSeconds.abs() < 2
+              final exists = _messages.any((msg) =>
+              msg.senderId == newMessage.senderId &&
+                  msg.content == newMessage.content &&
+                  msg.createdAt.difference(newMessage.createdAt).inSeconds.abs() < 2
               );
-              
+
               if (!exists) {
                 setState(() {
                   _messages.add(newMessage);
@@ -182,7 +185,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
 
   Future<void> _sendMessage() async {
     if (_chatMatchId == null) return;
-    
+
     final content = _messageController.text.trim();
     if (content.isEmpty) return;
 
@@ -196,7 +199,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
       createdAt: DateTime.now(),
       senderUsername: _currentUser?.username,
     );
-    
+
     setState(() {
       _messages.add(tempMessage);
     });
@@ -217,10 +220,10 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
         );
         // Remove optimistic message on error
         setState(() {
-          _messages.removeWhere((msg) => 
-            msg.id == 0 && 
-            msg.content == content &&
-            msg.senderId == (_currentUser?.id ?? 0)
+          _messages.removeWhere((msg) =>
+          msg.id == 0 &&
+              msg.content == content &&
+              msg.senderId == (_currentUser?.id ?? 0)
           );
         });
       }
@@ -334,114 +337,120 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     final theme = Theme.of(context);
 
     return Scaffold(
-      extendBodyBehindAppBar: false,
-      appBar: AppBar(
-        title: Row(
+      backgroundColor: PixelColors.background,
+      body: SafeArea(
+        child: Column(
           children: [
-            CircleAvatar(
-              radius: 18,
-              backgroundColor: Colors.white,
-              child: Text(
-                widget.friend.username.substring(0, 1).toUpperCase(),
-                style: TextStyle(
-                  color: theme.colorScheme.primary,
-                  fontWeight: FontWeight.bold,
+            PixelHeader(
+              title: widget.friend.username.toUpperCase(),
+              showBackButton: true,
+              onBackPressed: () => context.pop(),
+              leading: Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: PixelColors.background,
+                  border: Border.all(color: PixelColors.border, width: 2),
+                ),
+                child: Center(
+                  child: PixelText(
+                    text: widget.friend.username.substring(0, 1).toUpperCase(),
+                    style: PixelTextStyle.subtitle,
+                    color: PixelColors.primary,
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 12),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(widget.friend.username),
-                Text(
-                  widget.friend.isOnline ? 'Đang online' : 'Offline',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: widget.friend.isOnline ? Colors.green : Colors.grey,
+              actions: [
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  decoration: BoxDecoration(
+                    color: widget.friend.isOnline ? PixelColors.success : PixelColors.textLight,
+                    border: Border.all(color: PixelColors.border, width: 2),
+                  ),
+                  child: PixelText(
+                    text: widget.friend.isOnline ? 'ONLINE' : 'OFFLINE',
+                    style: PixelTextStyle.caption,
+                    color: PixelColors.background,
                   ),
                 ),
               ],
+            ),
+            Expanded(
+              child: _isLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : Column(
+                children: [
+                  // Messages
+                  Expanded(
+                    child: _messages.isEmpty
+                        ? Center(
+                      child: Text(
+                        'Chưa có tin nhắn nào',
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.5),
+                        ),
+                      ),
+                    )
+                        : ListView.builder(
+                      controller: _scrollController,
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      itemCount: _messages.length,
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      itemBuilder: (context, index) {
+                        return _buildMessageBubble(_messages[index]);
+                      },
+                    ),
+                  ),
+
+                  // Message input
+                  Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: theme.colorScheme.surface,
+                      boxShadow: [
+                        BoxShadow(
+                          color: Colors.black.withOpacity(0.05),
+                          blurRadius: 4,
+                          offset: const Offset(0, -2),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: TextField(
+                            controller: _messageController,
+                            decoration: InputDecoration(
+                              hintText: 'Nhập tin nhắn...',
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(24),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 8,
+                              ),
+                            ),
+                            onSubmitted: (_) => _sendMessage(),
+                          ),
+                        ),
+                        const SizedBox(width: 8),
+                        IconButton(
+                          onPressed: _sendMessage,
+                          icon: const Icon(Icons.send),
+                          style: IconButton.styleFrom(
+                            backgroundColor: theme.colorScheme.primary,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
             ),
           ],
         ),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => context.pop(),
-        ),
       ),
-      body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : Column(
-              children: [
-                // Messages
-                Expanded(
-                  child: _messages.isEmpty
-                      ? Center(
-                          child: Text(
-                            'Chưa có tin nhắn nào',
-                            style: theme.textTheme.bodyMedium?.copyWith(
-                              color: theme.colorScheme.onSurface.withOpacity(0.5),
-                            ),
-                          ),
-                        )
-                      : ListView.builder(
-                          controller: _scrollController,
-                          padding: const EdgeInsets.symmetric(vertical: 8),
-                          itemCount: _messages.length,
-                          physics: const AlwaysScrollableScrollPhysics(),
-                          itemBuilder: (context, index) {
-                            return _buildMessageBubble(_messages[index]);
-                          },
-                        ),
-                ),
-
-                // Message input
-                Container(
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    color: theme.colorScheme.surface,
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withOpacity(0.05),
-                        blurRadius: 4,
-                        offset: const Offset(0, -2),
-                      ),
-                    ],
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: TextField(
-                          controller: _messageController,
-                          decoration: InputDecoration(
-                            hintText: 'Nhập tin nhắn...',
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(24),
-                            ),
-                            contentPadding: const EdgeInsets.symmetric(
-                              horizontal: 16,
-                              vertical: 8,
-                            ),
-                          ),
-                          onSubmitted: (_) => _sendMessage(),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      IconButton(
-                        onPressed: _sendMessage,
-                        icon: const Icon(Icons.send),
-                        style: IconButton.styleFrom(
-                          backgroundColor: theme.colorScheme.primary,
-                          foregroundColor: Colors.white,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
     );
   }
 }
-
