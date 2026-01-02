@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/rubik_cube.dart';
 import '../services/rubik_solver_service.dart';
+import '../solver/kociemba_solver.dart';
 import '../widgets/cube_color_picker.dart';
 import '../widgets/cube_net_view.dart';
 
@@ -20,12 +21,18 @@ class _SolverScreenState extends State<SolverScreen> {
   // Khởi tạo cube với trạng thái đã giải (mỗi mặt có cùng một màu)
   Map<String, List<List<CubeColor?>>> _initializeSolvedCube() {
     return {
-      'up': List.generate(3, (_) => List.filled(3, CubeColor.white)), // Mặt trên - trắng
-      'down': List.generate(3, (_) => List.filled(3, CubeColor.yellow)), // Mặt dưới - vàng
-      'front': List.generate(3, (_) => List.filled(3, CubeColor.blue)), // Mặt trước - xanh dương
-      'back': List.generate(3, (_) => List.filled(3, CubeColor.green)), // Mặt sau - xanh lá
-      'left': List.generate(3, (_) => List.filled(3, CubeColor.orange)), // Mặt trái - cam
-      'right': List.generate(3, (_) => List.filled(3, CubeColor.red)), // Mặt phải - đỏ
+      'up': List.generate(
+          3, (_) => List.filled(3, CubeColor.white)), // Mặt trên - trắng
+      'down': List.generate(
+          3, (_) => List.filled(3, CubeColor.yellow)), // Mặt dưới - vàng
+      'front': List.generate(
+          3, (_) => List.filled(3, CubeColor.blue)), // Mặt trước - xanh dương
+      'back': List.generate(
+          3, (_) => List.filled(3, CubeColor.green)), // Mặt sau - xanh lá
+      'left': List.generate(
+          3, (_) => List.filled(3, CubeColor.orange)), // Mặt trái - cam
+      'right': List.generate(
+          3, (_) => List.filled(3, CubeColor.red)), // Mặt phải - đỏ
     };
   }
 
@@ -72,10 +79,11 @@ class _SolverScreenState extends State<SolverScreen> {
                         const SizedBox(width: 8),
                         Text(
                           'Hướng dẫn',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.blue[700],
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.blue[700],
+                                  ),
                         ),
                       ],
                     ),
@@ -95,7 +103,8 @@ class _SolverScreenState extends State<SolverScreen> {
             // Cube faces editor
             Text(
               'Nhập trạng thái cube',
-              style: Theme.of(context).textTheme.titleMedium?.copyWith( // Giảm từ titleLarge
+              style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    // Giảm từ titleLarge
                     fontWeight: FontWeight.bold,
                   ),
             ),
@@ -138,7 +147,10 @@ class _SolverScreenState extends State<SolverScreen> {
                           const SizedBox(width: 8),
                           Text(
                             'Giải pháp đã tìm thấy',
-                            style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .titleMedium
+                                ?.copyWith(
                                   fontWeight: FontWeight.bold,
                                   color: Colors.green[700],
                                 ),
@@ -184,7 +196,10 @@ class _SolverScreenState extends State<SolverScreen> {
                           ),
                           child: Text(
                             _currentStep!,
-                            style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                            style: Theme.of(context)
+                                .textTheme
+                                .headlineMedium
+                                ?.copyWith(
                                   fontFamily: 'monospace',
                                   fontWeight: FontWeight.bold,
                                   color: Colors.blue[900],
@@ -207,9 +222,10 @@ class _SolverScreenState extends State<SolverScreen> {
                     children: [
                       Text(
                         'Tất cả các bước:',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              fontWeight: FontWeight.bold,
-                            ),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
                       ),
                       const SizedBox(height: 12),
                       Wrap(
@@ -244,7 +260,9 @@ class _SolverScreenState extends State<SolverScreen> {
                               step,
                               style: TextStyle(
                                 fontFamily: 'monospace',
-                                fontWeight: isCurrent ? FontWeight.bold : FontWeight.normal,
+                                fontWeight: isCurrent
+                                    ? FontWeight.bold
+                                    : FontWeight.normal,
                                 color: isCurrent
                                     ? Colors.blue[900]
                                     : isDone
@@ -274,10 +292,12 @@ class _SolverScreenState extends State<SolverScreen> {
                             ? const SizedBox(
                                 width: 20,
                                 height: 20,
-                                child: CircularProgressIndicator(strokeWidth: 2),
+                                child:
+                                    CircularProgressIndicator(strokeWidth: 2),
                               )
                             : const Icon(Icons.search),
-                        label: Text(_isSolving ? 'Đang tìm...' : 'Tìm giải pháp'),
+                        label:
+                            Text(_isSolving ? 'Đang tìm...' : 'Tìm giải pháp'),
                         style: ElevatedButton.styleFrom(
                           padding: const EdgeInsets.symmetric(vertical: 16),
                           backgroundColor: Colors.blue,
@@ -310,6 +330,41 @@ class _SolverScreenState extends State<SolverScreen> {
                     children: [
                       Expanded(
                         child: OutlinedButton.icon(
+                          onPressed:
+                              _currentStepIndex > 0 ? _previousStep : null,
+                          icon: const Icon(Icons.arrow_back),
+                          label: const Text('Quay lại'),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton.icon(
+                          onPressed: _isSolving ? null : _autoSolveAll,
+                          icon: _isSolving
+                              ? const SizedBox(
+                                  width: 20,
+                                  height: 20,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                    valueColor:
+                                        AlwaysStoppedAnimation(Colors.white),
+                                  ),
+                                )
+                              : const Icon(Icons.play_arrow),
+                          label: const Text('Tự động giải'),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.orange,
+                            foregroundColor: Colors.white,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: OutlinedButton.icon(
                           onPressed: _resetSolution,
                           icon: const Icon(Icons.refresh),
                           label: const Text('Reset giải pháp'),
@@ -329,7 +384,8 @@ class _SolverScreenState extends State<SolverScreen> {
               ],
             ),
 
-            if (_solutionSteps.isNotEmpty && _currentStepIndex >= _solutionSteps.length) ...[
+            if (_solutionSteps.isNotEmpty &&
+                _currentStepIndex >= _solutionSteps.length) ...[
               const SizedBox(height: 16),
               Card(
                 color: Colors.green[100],
@@ -337,15 +393,17 @@ class _SolverScreenState extends State<SolverScreen> {
                   padding: const EdgeInsets.all(16),
                   child: Row(
                     children: [
-                      Icon(Icons.check_circle, color: Colors.green[700], size: 32),
+                      Icon(Icons.check_circle,
+                          color: Colors.green[700], size: 32),
                       const SizedBox(width: 12),
                       Expanded(
                         child: Text(
                           'Hoàn thành! Cube đã được giải.',
-                          style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                                fontWeight: FontWeight.bold,
-                                color: Colors.green[700],
-                              ),
+                          style:
+                              Theme.of(context).textTheme.titleMedium?.copyWith(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.green[700],
+                                  ),
                         ),
                       ),
                     ],
@@ -389,15 +447,32 @@ class _SolverScreenState extends State<SolverScreen> {
       _isSolving = true;
     });
 
-    // Tạo cube từ state
+    // Kiểm tra xem cube configuration có hợp lệ không
+    if (!_isValidCubeConfiguration()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              'Cấu hình cube không hợp lệ! Mỗi màu phải có đúng 9 stickers.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+      setState(() => _isSolving = false);
+      return;
+    }
+
+    // Tạo cube từ state và map colors
     final cube = RubikCube();
-    // TODO: Map colors từ _cubeState vào cube
-    // Hiện tại chỉ generate solution đơn giản
+    _mapColorsToRubikCube(cube, _cubeState);
 
     _solverService = RubikSolverService(cube);
     final steps = _solverService!.generateSolution();
 
     await Future.delayed(const Duration(milliseconds: 500)); // Simulate solving
+
+    // ✅ THỰC TẾ APPLY tất cả moves vào cube
+    for (final move in steps) {
+      _applyCubeMove(cube, move);
+    }
 
     setState(() {
       _solutionSteps = steps;
@@ -405,6 +480,25 @@ class _SolverScreenState extends State<SolverScreen> {
       _currentStep = null;
       _isSolving = false;
     });
+
+    // ✅ Verify cube đã giải xong
+    if (cube.isSolved()) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('✓ Cube đã được giải thành công!'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 3),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+              '⚠ Lưu ý: Cube chưa hoàn toàn giải (có thể do logic chưa hoàn hảo)'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+    }
   }
 
   void _showNextStep() {
@@ -414,6 +508,7 @@ class _SolverScreenState extends State<SolverScreen> {
     if (nextStep != null) {
       setState(() {
         _currentStep = nextStep;
+        _currentStepIndex++; // Tăng index lên
       });
 
       // Hiển thị thông báo
@@ -421,6 +516,15 @@ class _SolverScreenState extends State<SolverScreen> {
         SnackBar(
           content: Text('Bước $_currentStepIndex: $nextStep'),
           duration: const Duration(seconds: 2),
+        ),
+      );
+    } else {
+      // Hết bước
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Hoàn thành! Cube đã được giải.'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
         ),
       );
     }
@@ -444,6 +548,225 @@ class _SolverScreenState extends State<SolverScreen> {
         _currentStepIndex = 0;
         _currentStep = null;
       });
+    }
+  }
+
+  void _previousStep() {
+    if (_currentStepIndex > 0) {
+      setState(() {
+        _currentStepIndex--;
+        _currentStep = _currentStepIndex > 0
+            ? _solutionSteps[_currentStepIndex - 1]
+            : null;
+      });
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Quay lại bước $_currentStepIndex'),
+          duration: const Duration(seconds: 1),
+        ),
+      );
+    }
+  }
+
+  Future<void> _autoSolveAll() async {
+    if (_solutionSteps.isEmpty) return;
+
+    // Disable nút để tránh spam
+    if (_isSolving) return;
+
+    setState(() => _isSolving = true);
+
+    try {
+      while (_solverService?.hasNextStep() ?? false) {
+        _showNextStep();
+        await Future.delayed(const Duration(milliseconds: 800));
+      }
+    } finally {
+      setState(() => _isSolving = false);
+    }
+  }
+
+  /// Map màu từ _cubeState sang RubikCube model
+  void _mapColorsToRubikCube(
+    RubikCube cube,
+    Map<String, List<List<CubeColor?>>> cubeState,
+  ) {
+    // Map 54 stickers từ UI state sang cubelets
+    // Cấu trúc:
+    // - up (top): y=2, các màu từ rows 0-2
+    // - down (bottom): y=0, các màu từ rows 0-2
+    // - left: x=0, các màu từ rows 0-2
+    // - right: x=2, các màu từ rows 0-2
+    // - front: z=2, các màu từ rows 0-2
+    // - back: z=0, các màu từ rows 0-2
+
+    // Gán màu cho mặt Up (y=2)
+    final upColors = cubeState['up']!;
+    for (int x = 0; x < 3; x++) {
+      for (int z = 0; z < 3; z++) {
+        final color = upColors[z][x];
+        if (color != null) {
+          cube.cubelets[x][2][z].setFaceColor('up', color);
+        }
+      }
+    }
+
+    // Gán màu cho mặt Down (y=0)
+    final downColors = cubeState['down']!;
+    for (int x = 0; x < 3; x++) {
+      for (int z = 0; z < 3; z++) {
+        final color = downColors[z][x];
+        if (color != null) {
+          cube.cubelets[x][0][z].setFaceColor('down', color);
+        }
+      }
+    }
+
+    // Gán màu cho mặt Left (x=0)
+    final leftColors = cubeState['left']!;
+    for (int y = 0; y < 3; y++) {
+      for (int z = 0; z < 3; z++) {
+        final color = leftColors[y][2 - z];
+        if (color != null) {
+          cube.cubelets[0][y][z].setFaceColor('left', color);
+        }
+      }
+    }
+
+    // Gán màu cho mặt Right (x=2)
+    final rightColors = cubeState['right']!;
+    for (int y = 0; y < 3; y++) {
+      for (int z = 0; z < 3; z++) {
+        final color = rightColors[y][z];
+        if (color != null) {
+          cube.cubelets[2][y][z].setFaceColor('right', color);
+        }
+      }
+    }
+
+    // Gán màu cho mặt Front (z=2)
+    final frontColors = cubeState['front']!;
+    for (int x = 0; x < 3; x++) {
+      for (int y = 0; y < 3; y++) {
+        final color = frontColors[2 - y][x];
+        if (color != null) {
+          cube.cubelets[x][y][2].setFaceColor('front', color);
+        }
+      }
+    }
+
+    // Gán màu cho mặt Back (z=0)
+    final backColors = cubeState['back']!;
+    for (int x = 0; x < 3; x++) {
+      for (int y = 0; y < 3; y++) {
+        final color = backColors[2 - y][2 - x];
+        if (color != null) {
+          cube.cubelets[x][y][0].setFaceColor('back', color);
+        }
+      }
+    }
+  }
+
+  /// Kiểm tra xem cube configuration có hợp lệ không
+  bool _isValidCubeConfiguration() {
+    final colorCounts = <CubeColor, int>{};
+
+    // Đếm số lần xuất hiện của mỗi màu
+    for (final face in _cubeState.values) {
+      for (final row in face) {
+        for (final color in row) {
+          if (color != null) {
+            colorCounts[color] = (colorCounts[color] ?? 0) + 1;
+          }
+        }
+      }
+    }
+
+    // Kiểm tra mỗi màu có đúng 9 stickers (1 mặt)
+    for (final count in colorCounts.values) {
+      if (count != 9) return false;
+    }
+
+    // Kiểm tra có đủ 6 màu
+    if (colorCounts.length != 6) return false;
+
+    return true;
+  }
+
+  /// Apply một move vào cube và cập nhật trạng thái
+  void _applyCubeMove(RubikCube cube, String move) {
+    switch (move) {
+      case 'F':
+        cube.rotateFace('front', true);
+        break;
+      case 'F\'':
+        cube.rotateFace('front', false);
+        break;
+      // Các move khác vẫn gọi nhưng không apply color rotation (chỉ geometry)
+      case 'B':
+        cube.rotateFace('back', true);
+        break;
+      case 'B\'':
+        cube.rotateFace('back', false);
+        break;
+      case 'R':
+        cube.rotateFace('right', true);
+        break;
+      case 'R\'':
+        cube.rotateFace('right', false);
+        break;
+      case 'L':
+        cube.rotateFace('left', true);
+        break;
+      case 'L\'':
+        cube.rotateFace('left', false);
+        break;
+      case 'U':
+        cube.rotateFace('up', true);
+        break;
+      case 'U\'':
+        cube.rotateFace('up', false);
+        break;
+      case 'D':
+        cube.rotateFace('down', true);
+        break;
+      case 'D\'':
+        cube.rotateFace('down', false);
+        break;
+      case 'M':
+        // Middle slice - skip color rotation
+        break;
+      case 'M\'':
+        // Middle slice - skip color rotation
+        break;
+      case 'M2':
+        // Middle slice - skip color rotation
+        break;
+      case 'U2':
+        cube.rotateFace('up', true);
+        cube.rotateFace('up', true);
+        break;
+      case 'D2':
+        cube.rotateFace('down', true);
+        cube.rotateFace('down', true);
+        break;
+      case 'R2':
+        cube.rotateFace('right', true);
+        cube.rotateFace('right', true);
+        break;
+      case 'L2':
+        cube.rotateFace('left', true);
+        cube.rotateFace('left', true);
+        break;
+      case 'F2':
+        cube.rotateFace('front', true);
+        cube.rotateFace('front', true);
+        break;
+      case 'B2':
+        cube.rotateFace('back', true);
+        cube.rotateFace('back', true);
+        break;
     }
   }
 

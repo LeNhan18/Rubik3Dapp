@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.models.user import User
 from app.utils.security import decode_access_token
+from app.utils.permissions import PermissionChecker
 import logging
 
 logger = logging.getLogger(__name__)
@@ -59,8 +60,32 @@ async def get_current_user(
             detail=f"User not found (id: {user_id})",
         )
 
+    # Get user roles and permissions
+    roles = [role.name for role in user.roles] if hasattr(user, 'roles') else []
+    permissions = PermissionChecker.get_user_permissions(db, user.id) if hasattr(user, 'roles') else set()
+    
     return {
         "id": user.id,
         "username": user.username,
         "email": user.email,
+        "is_admin": user.is_admin if hasattr(user, 'is_admin') else False,
+        "roles": roles,
+        "permissions": list(permissions),
     }
+
+
+async def get_admin_user(
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+) -> dict:
+    """Get current user and verify admin access"""
+    if not current_user.get("is_admin", False):
+        # Double check from database
+        user = db.query(User).filter(User.id == current_user["id"]).first()
+        if not user or not user.is_admin:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="Admin access required"
+            )
+    
+    return current_user

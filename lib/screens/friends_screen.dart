@@ -397,28 +397,33 @@ class _FriendsScreenState extends State<FriendsScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
+          Flexible(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 PixelText(
                   text: senderUsername.toUpperCase(),
                   style: PixelTextStyle.subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 PixelText(
                   text: 'ĐÃ GỬI LỜI MỜI KẾT BẠN',
                   style: PixelTextStyle.caption,
                   color: PixelColors.textSecondary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           PixelButton(
             text: 'CHẤP NHẬN',
             onPressed: () => _acceptFriendRequest(friendshipId),
             icon: Icons.check,
             backgroundColor: PixelColors.success,
-            width: 120,
+            width: 110,
             height: 36,
             borderWidth: 2,
             shadowOffset: 2,
@@ -476,18 +481,22 @@ class _FriendsScreenState extends State<FriendsScreen> {
             ),
           ),
           const SizedBox(width: 12),
-          Expanded(
+          Flexible(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 PixelText(
                   text: user.username.toUpperCase(),
                   style: PixelTextStyle.subtitle,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 PixelText(
                   text: user.email.toUpperCase(),
                   style: PixelTextStyle.caption,
                   color: PixelColors.textSecondary,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
                 const SizedBox(height: 4),
                 Row(
@@ -501,16 +510,21 @@ class _FriendsScreenState extends State<FriendsScreen> {
                       ),
                     ),
                     const SizedBox(width: 4),
-                    PixelText(
-                      text: user.isOnline ? 'ĐANG ONLINE' : 'OFFLINE',
-                      style: PixelTextStyle.caption,
-                      color: PixelColors.textSecondary,
+                    Flexible(
+                      child: PixelText(
+                        text: user.isOnline ? 'ĐANG ONLINE' : 'OFFLINE',
+                        style: PixelTextStyle.caption,
+                        color: PixelColors.textSecondary,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
                     ),
                   ],
                 ),
               ],
             ),
           ),
+          const SizedBox(width: 8),
           (isFriend || isActuallyFriend)
               ? PopupMenuButton<String>(
                   icon: const Icon(Icons.more_vert, color: PixelColors.primary),
@@ -570,7 +584,7 @@ class _FriendsScreenState extends State<FriendsScreen> {
                   onPressed: () => _sendFriendRequest(user),
                   icon: Icons.person_add,
                   backgroundColor: PixelColors.accent,
-                  width: 100,
+                  width: 90,
                   height: 36,
                   borderWidth: 2,
                   shadowOffset: 2,

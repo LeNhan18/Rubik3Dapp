@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import auth, users, matches, chat, friends
+from app.routers import auth, users, matches, chat, friends, admin
 from app.services.websocket_service import ConnectionManager
 from app.utils.dependencies import get_current_user
 from app.utils.security import decode_access_token
@@ -10,8 +10,13 @@ from app.models.user import User
 from sqlalchemy.orm import Session
 import uvicorn
 
-# Create database tables
-Base.metadata.create_all(bind=engine)
+# Create database tables (with error handling)
+try:
+    Base.metadata.create_all(bind=engine)
+    print("Database tables created successfully")
+except Exception as e:
+    print(f"Warning: Could not create database tables: {e}")
+    print("This is OK if tables already exist or database is not yet available")
 
 app = FastAPI(
     title="Rubik Master API",
@@ -20,13 +25,26 @@ app = FastAPI(
 )
 
 # CORS Middleware
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=settings.CORS_ORIGINS,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Note: Cannot use allow_origins=["*"] with allow_credentials=True
+# Use specific origins or set allow_credentials=False
+cors_origins = settings.CORS_ORIGINS
+if cors_origins == ["*"]:
+    # If wildcard, disable credentials for compatibility
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=cors_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 # WebSocket manager
 manager = ConnectionManager()
@@ -37,6 +55,7 @@ app.include_router(users.router, prefix="/api/users", tags=["Users"])
 app.include_router(matches.router, prefix="/api/matches", tags=["Matches"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(friends.router, prefix="/api/friends", tags=["Friends"])
+app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
 
 # Set manager in chat router
 chat.set_manager(manager)
@@ -54,21 +73,25 @@ async def websocket_endpoint(
         if not payload or payload.get("sub") != user_id:
             await websocket.close(code=1008, reason="Invalid token")
             return
-    
+
     # Get username from database
     username = None
-    db = next(get_db())
     try:
-        user = db.query(User).filter(User.id == user_id).first()
-        if user:
-            username = user.username
+        db = next(get_db())
+        try:
+            user = db.query(User).filter(User.id == user_id).first()
+            if user:
+                username = user.username
+        except Exception as e:
+            print(f"Error getting username for user {user_id}: {e}")
+        finally:
+            db.close()
     except Exception as e:
-        print(f"Error getting username for user {user_id}: {e}")
-    finally:
-        db.close()
-    
+        print(f"Error connecting to database: {e}")
+        # Continue without username if database is unavailable
+
     await manager.connect(websocket, user_id, username)
-    
+
     try:
         while True:
             data = await websocket.receive_json()

@@ -9,9 +9,9 @@ class PixelColors {
   static const Color card = Color(0xFFD4C4A8); // Light brown
   
   // Primary colors
-  static const Color primary = Color(0xFF8B6F47); // Brown
-  static const Color primaryDark = Color(0xFF6B5435); // Dark brown
-  static const Color primaryLight = Color(0xFFA6895F); // Light brown
+  static const Color primary = Color(0xFF8B4763); // Brown
+  static const Color primaryDark = Color(0xFF931945); // Dark brown
+  static const Color primaryLight = Color(0xFF491739); // Light brown
   
   // Accent colors
   static const Color accent = Color(0xFF7A9D7A); // Muted green

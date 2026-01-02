@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../services/api_service.dart';
+import '../models/user.dart';
 import '../theme/pixel_colors.dart';
 import '../widgets/pixel_button.dart';
 import '../widgets/pixel_card.dart';
@@ -36,13 +37,36 @@ class _LoginScreenState extends State<LoginScreen> {
     setState(() => _isLoading = true);
 
     try {
-      await _apiService.login(
+      final response = await _apiService.login(
         email: _emailController.text.trim(),
         password: _passwordController.text,
       );
 
       if (mounted) {
-        context.go('/');
+        // Kiểm tra xem user có phải admin không
+        final userData = response['user'] as Map<String, dynamic>?;
+        if (userData != null) {
+          final user = User.fromJson(userData);
+          // Nếu là admin thì chuyển đến admin panel, nếu không thì về home
+          if (user.isAdmin) {
+            context.go('/admin');
+          } else {
+            context.go('/');
+          }
+        } else {
+          // Fallback: lấy user từ API nếu không có trong response
+          try {
+            final user = await _apiService.getCurrentUser();
+            if (user.isAdmin) {
+              context.go('/admin');
+            } else {
+              context.go('/');
+            }
+          } catch (e) {
+            // Nếu không lấy được user, về home
+            context.go('/');
+          }
+        }
       }
     } catch (e) {
       if (mounted) {

@@ -1,6 +1,8 @@
 from sqlalchemy import Column, Integer, String, Boolean, DateTime, DECIMAL
 from sqlalchemy.sql import func
+from sqlalchemy.orm import relationship
 from app.database import Base
+from app.models.role import user_roles
 
 class User(Base):
     __tablename__ = "users"
@@ -17,7 +19,11 @@ class User(Base):
     best_time = Column(Integer, nullable=True)  # milliseconds
     elo_rating = Column(Integer, default=1000)  # ELO rating, default 1000
     is_online = Column(Boolean, default=False)
+    is_admin = Column(Boolean, default=False)  # Admin flag (kept for backward compatibility)
     last_seen = Column(DateTime, nullable=True)
     created_at = Column(DateTime, server_default=func.now())
     updated_at = Column(DateTime, server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    roles = relationship("Role", secondary=user_roles, back_populates="users")
 

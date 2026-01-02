@@ -1,0 +1,214 @@
+# ============================================
+# RUBIK MASTER - PROJECT REQUIREMENTS
+# ============================================
+# File này liệt kê tất cả các yêu cầu và dependencies của dự án Rubik Master
+# Bao gồm: Flutter Frontend, Python Backend, và các công cụ phát triển
+
+# ============================================
+# 1. FLUTTER FRONTEND REQUIREMENTS
+# ============================================
+# Xem file: pubspec.yaml để biết chi tiết dependencies Flutter
+# 
+# Yêu cầu hệ thống:
+# - Flutter SDK >= 3.5.4
+# - Dart SDK (đi kèm với Flutter)
+# - Android Studio hoặc VS Code với Flutter extension
+# - Android SDK (cho Android development)
+# - Xcode (cho iOS development, chỉ trên macOS)
+
+# Flutter Dependencies (từ pubspec.yaml):
+# - flutter_riverpod: ^2.5.1 (State Management)
+# - go_router: ^14.2.7 (Navigation)
+# - flutter_cube: ^0.1.1 (3D Cube Rendering)
+# - hive: ^2.2.3 (Local Database)
+# - hive_flutter: ^1.1.0
+# - shared_preferences: ^2.2.2
+# - google_fonts: ^6.2.1 (Pixel Art Fonts)
+# - lottie: ^3.1.2 (Animations)
+# - confetti: ^0.7.0 (Celebration Effects)
+# - provider: ^6.1.1
+# - vector_math: ^2.1.4
+# - http: ^1.2.0 (HTTP Client)
+# - web_socket_channel: ^2.4.0 (WebSocket)
+
+# Dev Dependencies:
+# - flutter_lints: ^4.0.0
+# - riverpod_generator: ^2.4.0
+# - build_runner: ^2.4.9
+# - hive_generator: ^2.0.1
+# - json_serializable: ^6.7.1
+
+# Platform Support:
+# - Android 9+ (API level 28+)
+# - iOS 12+
+# - Web (Chrome, Firefox, Safari)
+# - Windows Desktop
+# - macOS Desktop
+# - Linux Desktop
+
+# ============================================
+# 2. PYTHON BACKEND REQUIREMENTS
+# ============================================
+# Xem file: backend/requirements.txt để cài đặt Python packages
+# 
+# Yêu cầu hệ thống:
+# - Python >= 3.8
+# - MySQL >= 5.7 hoặc MariaDB >= 10.3
+# - pip (Python package manager)
+
+# Python Dependencies (từ backend/requirements.txt):
+fastapi==0.115.0
+uvicorn[standard]==0.32.0
+sqlalchemy==2.0.36
+pymysql==1.1.1
+cryptography==43.0.1
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.12
+pydantic==2.9.2
+pydantic-settings==2.5.2
+python-dotenv==1.0.1
+
+# Cài đặt Python dependencies:
+# cd backend
+# pip install -r requirements.txt
+
+# ============================================
+# 3. DATABASE REQUIREMENTS
+# ============================================
+# - MySQL 5.7+ hoặc MariaDB 10.3+
+# - Database name: rubik_master (hoặc tùy chỉnh trong .env)
+# - Xem file: backend/database_schema.sql để tạo database schema
+
+# ============================================
+# 4. DEVELOPMENT TOOLS
+# ============================================
+# Flutter Development:
+# - Flutter SDK: https://flutter.dev/docs/get-started/install
+# - Android Studio: https://developer.android.com/studio
+# - VS Code với Flutter extension
+# - Git: https://git-scm.com/
+
+# Python Development:
+# - Python 3.8+: https://www.python.org/downloads/
+# - pip: https://pip.pypa.io/en/stable/installation/
+# - MySQL Client hoặc MySQL Workbench
+
+# ============================================
+# 5. ENVIRONMENT VARIABLES
+# ============================================
+# Backend (.env file trong thư mục backend/):
+# DB_HOST=localhost
+# DB_PORT=3306
+# DB_USER=root
+# DB_PASSWORD=your_password
+# DB_NAME=rubik_master
+# SECRET_KEY=your-secret-key-here
+# CORS_ORIGINS=http://localhost:3000,http://localhost:8080
+
+# ============================================
+# 6. INSTALLATION STEPS
+# ============================================
+# 
+# A. Flutter Frontend:
+#    1. Cài đặt Flutter SDK
+#    2. cd rubik (thư mục gốc dự án)
+#    3. flutter pub get
+#    4. flutter run
+#
+# B. Python Backend:
+#    1. Cài đặt Python 3.8+
+#    2. cd backend
+#    3. pip install -r requirements.txt
+#    4. Tạo file .env từ .env.example
+#    5. Tạo database: mysql -u root -p < database_schema.sql
+#    6. Chạy server: python -m app.main
+#       hoặc: uvicorn app.main:app --reload
+#
+# C. Database Setup:
+#    1. Cài đặt MySQL
+#    2. Tạo database: CREATE DATABASE rubik_master;
+#    3. Import schema: mysql -u root -p rubik_master < database_schema.sql
+
+# ============================================
+# 7. PROJECT STRUCTURE
+# ============================================
+# rubik/
+# ├── lib/                    # Flutter source code
+# │   ├── screens/           # UI Screens
+# │   ├── widgets/           # Reusable widgets
+# │   ├── models/            # Data models
+# │   ├── services/          # Business logic
+# │   ├── theme/             # UI Theme (Pixel Art)
+# │   └── utils/             # Utilities
+# ├── backend/               # Python FastAPI backend
+# │   ├── app/               # Application code
+# │   │   ├── routers/       # API routes
+# │   │   ├── models/       # Database models
+# │   │   ├── schemas/      # Pydantic schemas
+# │   │   ├── services/     # Business logic
+# │   │   └── utils/        # Utilities
+# │   ├── database_schema.sql
+# │   └── requirements.txt
+# ├── assets/                # Flutter assets
+# │   ├── animations/       # Lottie animations
+# │   ├── images/           # Images
+# │   └── models/           # 3D models
+# ├── pubspec.yaml          # Flutter dependencies
+# └── requirements.txt      # This file
+
+# ============================================
+# 8. MAIN FEATURES
+# ============================================
+# - Timer chuyên nghiệp (WCA-compliant)
+# - Cube 3D tương tác với gesture control
+# - Auto Solver với animation
+# - Multiplayer matches
+# - Friends system với chat
+# - Leaderboard với ELO rating
+# - Pixel Art Retro UI/UX
+# - User profiles và statistics
+
+# ============================================
+# 9. API ENDPOINTS (Backend)
+# ============================================
+# Authentication:
+#   POST /api/auth/register
+#   POST /api/auth/login
+#
+# Users:
+#   GET /api/users/me
+#   GET /api/users/online
+#   GET /api/users/search/{username}
+#
+# Matches:
+#   POST /api/matches/create
+#   POST /api/matches/find-opponent
+#   GET /api/matches/{match_id}
+#   POST /api/matches/{match_id}/start
+#   POST /api/matches/{match_id}/submit-result
+#   GET /api/matches/
+#
+# Chat:
+#   POST /api/chat/send
+#   GET /api/chat/{match_id}/messages
+#
+# Friends:
+#   POST /api/friends/request
+#   POST /api/friends/{friendship_id}/accept
+#   GET /api/friends/
+#   GET /api/friends/pending
+#
+# WebSocket:
+#   ws://localhost:8000/ws/{user_id}?token={access_token}
+
+# ============================================
+# 10. NOTES
+# ============================================
+# - Đảm bảo MySQL đang chạy trước khi start backend
+# - Backend API chạy mặc định tại: http://localhost:8000
+# - API Documentation: http://localhost:8000/docs
+# - Flutter app cần cấu hình API base URL trong code
+# - Sử dụng Pixel Art Retro theme cho toàn bộ UI
+# - Gesture control cho Rubik Cube rotation (không xoay theo pixel)
+

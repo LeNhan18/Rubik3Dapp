@@ -17,10 +17,10 @@ import 'screens/friends_screen.dart';
 import 'screens/leaderboard_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/friend_chat_screen.dart';
+import 'screens/rubik_solver_ui_screen.dart';
+import 'screens/admin_screen.dart';
 import 'models/user.dart';
 import 'theme/pixel_theme.dart';
-
-
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -86,6 +86,10 @@ class RubikMasterApp extends ConsumerWidget {
         builder: (context, state) => const SolverScreen(),
       ),
       GoRoute(
+        path: '/solver-ui',
+        builder: (context, state) => const RubikSolverUIScreen(),
+      ),
+      GoRoute(
         path: '/cube3d-solver',
         builder: (context, state) => const Cube3DSolverScreen(),
       ),
@@ -136,6 +140,10 @@ class RubikMasterApp extends ConsumerWidget {
           }
           return FriendChatScreen(friend: friend);
         },
+      ),
+      GoRoute(
+        path: '/admin',
+        builder: (context, state) => const AdminScreen(),
       ),
     ],
   );

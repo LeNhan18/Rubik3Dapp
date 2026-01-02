@@ -19,6 +19,7 @@ CREATE TABLE IF NOT EXISTS users (
     best_time INT DEFAULT NULL COMMENT 'milliseconds',
     elo_rating INT DEFAULT 1000 NOT NULL,
     is_online BOOLEAN DEFAULT FALSE,
+    is_admin BOOLEAN DEFAULT FALSE,
     last_seen DATETIME DEFAULT NULL,
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
@@ -96,4 +97,14 @@ CREATE TABLE IF NOT EXISTS match_invitations (
     INDEX idx_invitee (invitee_id),
     INDEX idx_status (status)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+-- Migration: Add ELO rating column to users table
+-- Run this SQL script to add elo_rating column to existing database
+
+ALTER TABLE users
+ADD COLUMN elo_rating INT DEFAULT 1000 NOT NULL
+AFTER best_time;
+
+-- Update existing users to have default ELO rating of 1000
+UPDATE users SET elo_rating = 1000 WHERE elo_rating IS NULL;
+
 

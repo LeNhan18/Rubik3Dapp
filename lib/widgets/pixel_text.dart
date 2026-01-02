@@ -80,7 +80,9 @@ class PixelText extends StatelessWidget {
     
     return Text(
       text,
-      style: textStyle,
+      style: textStyle.copyWith(
+        height: 1.2, // Thêm line height để tránh cắt chữ
+      ),
       textAlign: textAlign,
       maxLines: maxLines,
       overflow: overflow,

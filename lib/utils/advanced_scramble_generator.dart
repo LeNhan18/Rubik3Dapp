@@ -1,8 +1,8 @@
 import 'dart:math';
 import 'difficulty_level.dart';
-
 /// Advanced WCA Scramble Generator with TNoodle-style random state algorithm
 /// Generates official scrambles for all WCA events with proper validation
+
 class AdvancedWCAScrambleGenerator {
   static final Random _random = Random();
 
@@ -56,7 +56,6 @@ class AdvancedWCAScrambleGenerator {
     int lastAxis = -1;
     int secondLastAxis = -1;
     String? lastFace;
-
     for (int i = 0; i < length; i++) {
       String face;
       int currentAxis;

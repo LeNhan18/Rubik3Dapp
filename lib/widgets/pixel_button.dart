@@ -51,10 +51,23 @@ class _PixelButtonState extends State<PixelButton> {
     final borderColor = widget.borderColor ?? PixelColors.border;
     final pressedColor = widget.backgroundColor?.withOpacity(0.8) ?? PixelColors.buttonPressed;
     
-    final fontSize = widget.isLarge ? 18.0 : 14.0;
-    final padding = widget.isLarge 
-        ? const EdgeInsets.symmetric(horizontal: 24, vertical: 16)
-        : const EdgeInsets.symmetric(horizontal: 16, vertical: 12);
+    // Tính toán font size và padding dựa trên kích thước button
+    double fontSize;
+    EdgeInsets padding;
+    
+    if (widget.isLarge) {
+      fontSize = 18.0;
+      padding = const EdgeInsets.symmetric(horizontal: 24, vertical: 16);
+    } else if (widget.width != null && widget.width! < 70) {
+      fontSize = 9.0;
+      padding = const EdgeInsets.symmetric(horizontal: 4, vertical: 4);
+    } else if (widget.height != null && widget.height! < 32) {
+      fontSize = 10.0;
+      padding = const EdgeInsets.symmetric(horizontal: 6, vertical: 4);
+    } else {
+      fontSize = 12.0;
+      padding = const EdgeInsets.symmetric(horizontal: 12, vertical: 8);
+    }
     
     return GestureDetector(
       onTapDown: (_) {
@@ -105,15 +118,20 @@ class _PixelButtonState extends State<PixelButton> {
                 ),
                 const SizedBox(width: 8),
               ],
-              Text(
-                widget.text.toUpperCase(),
-                style: GoogleFonts.pixelifySans(
-                  fontSize: fontSize,
-                  fontWeight: FontWeight.bold,
-                  color: textColor,
-                  letterSpacing: 0.5,
+              Flexible(
+                child: Text(
+                  widget.text.toUpperCase(),
+                  style: GoogleFonts.pixelifySans(
+                    fontSize: fontSize,
+                    fontWeight: FontWeight.bold,
+                    color: textColor,
+                    letterSpacing: fontSize < 11 ? 0.2 : 0.5,
+                    height: 1.1,
+                  ),
+                  textAlign: TextAlign.center,
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
                 ),
-                textAlign: TextAlign.center,
               ),
             ],
           ),

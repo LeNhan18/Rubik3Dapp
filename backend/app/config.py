@@ -6,11 +6,11 @@ class Settings(BaseSettings):
     DB_HOST: str = "localhost"
     DB_PORT: int = 3306
     DB_USER: str = "root"
-    DB_PASSWORD: str = ""
+    DB_PASSWORD: str = "nhan1811"
     DB_NAME: str = "rubik_master"
     
     # JWT
-    SECRET_KEY: str = "your-secret-key-change-in-production"
+    SECRET_KEY: str = "LeThanhNhan_SecretKey_KhongBaoGioDeDoanHiHiHiHi"
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 7  # 7 days
     

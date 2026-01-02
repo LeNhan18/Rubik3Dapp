@@ -39,7 +39,8 @@ class PixelHeader extends StatelessWidget {
           ),
         ),
       ),
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+      padding: const EdgeInsets.only(left: 4, right: 0, top: 8, bottom: 8),
+      constraints: const BoxConstraints(minHeight: 48),
       child: Row(
         children: [
           if (showBackButton) ...[
@@ -47,42 +48,49 @@ class PixelHeader extends StatelessWidget {
               text: '<',
               onPressed: onBackPressed ?? () => Navigator.of(context).pop(),
               backgroundColor: PixelColors.primaryDark,
-              width: 40,
-              height: 40,
+              width: 28,
+              height: 28,
               borderWidth: 2,
               shadowOffset: 2,
               isLarge: false,
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 4),
           ],
           if (leading != null) ...[
             leading!,
-            const SizedBox(width: 12),
+            const SizedBox(width: 4),
           ],
           if (logoText != null) ...[
-            Text(
-              logoText!,
-              style: GoogleFonts.pressStart2p(
-                fontSize: 20,
-                color: PixelColors.background,
-                letterSpacing: 2,
+            Flexible(
+              child: Text(
+                logoText!,
+                style: GoogleFonts.pressStart2p(
+                  fontSize: 9,
+                  color: PixelColors.background,
+                  letterSpacing: 0.8,
+                  height: 1,
+                ),
+                overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
-            const SizedBox(width: 16),
+            const SizedBox(width: 4),
           ],
           Expanded(
             child: Text(
               title.toUpperCase(),
               style: GoogleFonts.pressStart2p(
-                fontSize: 16,
+                fontSize: 9,
                 color: PixelColors.background,
-                letterSpacing: 1,
+                letterSpacing: 0.1,
+                height: 1.1,
               ),
               overflow: TextOverflow.ellipsis,
+              maxLines: 1,
+              softWrap: false,
             ),
           ),
           if (actions != null) ...[
-            const SizedBox(width: 12),
             ...actions!,
           ],
         ],

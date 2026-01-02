@@ -23,6 +23,7 @@ class UserResponse(BaseModel):
     best_time: Optional[int] = None
     elo_rating: int = 1000
     is_online: bool = False
+    is_admin: bool = False
     last_seen: Optional[datetime] = None
     created_at: datetime
 

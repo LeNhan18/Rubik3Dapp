@@ -42,6 +42,9 @@ dependencies:
   http: ^1.2.0
   web_socket_channel: ^2.4.0
   
+  # Image Picker
+  image_picker: ^1.0.7
+  
   # Icons
   cupertino_icons: ^1.0.8
 

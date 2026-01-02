@@ -20,7 +20,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   late AnimationController _animationController;
   late Animation<double> _fadeAnimation;
   late Animation<double> _slideAnimation;
-  
+
   final _apiService = ApiService();
   User? _currentUser;
   bool _isLoadingUser = true;
@@ -46,6 +46,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       icon: Icons.psychology,
       route: '/solver',
       color: PixelColors.primary,
+    ),
+    _HomeButton(
+      title: 'Solver UI ✨',
+      subtitle: 'Modern solver UI',
+      icon: Icons.dashboard_customize,
+      route: '/solver-ui',
+      color: Colors.deepPurple,
     ),
     _HomeButton(
       title: '3D Solver',
@@ -108,7 +115,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('access_token');
-      
+
       if (token != null && token.isNotEmpty) {
         final user = await _apiService.getCurrentUser();
         setState(() {
@@ -159,8 +166,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                   children: [
                     // Header
                     PixelHeader(
-                      title: 'RUBIK MASTER',
-                      logoText: '8BIT',
+                      title: 'TRANG CHỦ',
+                      logoText: null,
                       showBackButton: false,
                       actions: [
                         if (_isLoadingUser)
@@ -178,7 +185,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         else if (_currentUser != null)
                           PopupMenuButton<String>(
                             child: Padding(
-                              padding: const EdgeInsets.symmetric(horizontal: 8),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 8),
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -194,7 +202,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                     ),
                                     child: Center(
                                       child: PixelText(
-                                        text: _currentUser!.username.substring(0, 1).toUpperCase(),
+                                        text: _currentUser!.username
+                                            .substring(0, 1)
+                                            .toUpperCase(),
                                         style: PixelTextStyle.caption,
                                         color: PixelColors.primary,
                                       ),
@@ -223,11 +233,33 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                                   ],
                                 ),
                                 onTap: () {
-                                  Future.delayed(const Duration(milliseconds: 100), () {
+                                  Future.delayed(
+                                      const Duration(milliseconds: 100), () {
                                     context.push('/profile');
                                   });
                                 },
                               ),
+                              if (_currentUser!.isAdmin)
+                                PopupMenuItem(
+                                  value: 'admin',
+                                  child: Row(
+                                    children: [
+                                      const Icon(Icons.admin_panel_settings, size: 16),
+                                      const SizedBox(width: 8),
+                                      PixelText(
+                                        text: 'Admin Panel',
+                                        style: PixelTextStyle.caption,
+                                        color: PixelColors.error,
+                                      ),
+                                    ],
+                                  ),
+                                  onTap: () {
+                                    Future.delayed(
+                                        const Duration(milliseconds: 100), () {
+                                      context.push('/admin');
+                                    });
+                                  },
+                                ),
                               PopupMenuItem(
                                 value: 'logout',
                                 child: Row(
@@ -249,14 +281,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             },
                           )
                         else
-                          PixelButton(
-                            text: 'ĐĂNG NHẬP',
-                            onPressed: () => context.go('/login'),
-                            backgroundColor: PixelColors.primaryDark,
-                            width: 100,
-                            height: 40,
-                            borderWidth: 2,
-                            shadowOffset: 2,
+                          Padding(
+                            padding: const EdgeInsets.only(right: 4),
+                            child: Container(
+                              constraints: const BoxConstraints(
+                                  maxWidth: 60, maxHeight: 28),
+                              child: PixelButton(
+                                text: 'ĐĂNG NHẬP',
+                                onPressed: () => context.go('/login'),
+                                backgroundColor: PixelColors.primaryDark,
+                                borderWidth: 2,
+                                shadowOffset: 2,
+                                isLarge: false,
+                              ),
+                            ),
                           ),
                       ],
                     ),
@@ -284,7 +322,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                               gridDelegate:
                                   const SliverGridDelegateWithFixedCrossAxisCount(
                                 crossAxisCount: 2,
-                                childAspectRatio: 1.0,
+                                childAspectRatio:
+                                    0.95, // Tăng từ 1.0 lên 0.95 để có thêm không gian
                                 crossAxisSpacing: 16,
                                 mainAxisSpacing: 16,
                               ),
@@ -330,7 +369,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   Widget _buildHomeButton(_HomeButton button) {
     return PixelCard(
       backgroundColor: button.color,
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(10),
       child: InkWell(
         onTap: () {
           context.go(button.route);
@@ -341,26 +380,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           children: [
             Icon(
               button.icon,
-              size: 40,
+              size: 36,
               color: PixelColors.background,
             ),
-            const SizedBox(height: 12),
-            PixelText(
-              text: button.title.toUpperCase(),
-              style: PixelTextStyle.button,
-              color: PixelColors.background,
-              textAlign: TextAlign.center,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 8),
+            Flexible(
+              child: PixelText(
+                text: button.title.toUpperCase(),
+                style: PixelTextStyle.button,
+                color: PixelColors.background,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            const SizedBox(height: 4),
-            PixelText(
-              text: button.subtitle.toUpperCase(),
-              style: PixelTextStyle.caption,
-              color: PixelColors.background.withOpacity(0.9),
-              textAlign: TextAlign.center,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
+            const SizedBox(height: 2),
+            Flexible(
+              child: PixelText(
+                text: button.subtitle.toUpperCase(),
+                style: PixelTextStyle.caption,
+                color: PixelColors.background.withOpacity(0.9),
+                textAlign: TextAlign.center,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
           ],
         ),

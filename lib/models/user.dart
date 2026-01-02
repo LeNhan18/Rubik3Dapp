@@ -10,6 +10,7 @@ class User {
   final int? bestTime;
   final int eloRating;
   final bool isOnline;
+  final bool isAdmin;
   final DateTime? lastSeen;
   final DateTime createdAt;
 
@@ -25,6 +26,7 @@ class User {
     this.bestTime,
     this.eloRating = 1000,
     required this.isOnline,
+    this.isAdmin = false,
     this.lastSeen,
     required this.createdAt,
   });
@@ -44,6 +46,7 @@ class User {
       bestTime: json['best_time'] as int?,
       eloRating: json['elo_rating'] as int? ?? 1000,
       isOnline: json['is_online'] as bool? ?? false,
+      isAdmin: json['is_admin'] as bool? ?? false,
       lastSeen: json['last_seen'] != null
           ? DateTime.parse(json['last_seen'] as String)
           : null,
@@ -66,6 +69,7 @@ class User {
       'best_time': bestTime,
       'elo_rating': eloRating,
       'is_online': isOnline,
+      'is_admin': isAdmin,
       'last_seen': lastSeen?.toIso8601String(),
       'created_at': createdAt.toIso8601String(),
     };

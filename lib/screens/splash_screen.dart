@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:google_fonts/google_fonts.dart';
+import '../services/api_service.dart';
 import '../theme/pixel_colors.dart';
 import '../widgets/pixel_text.dart';
 
@@ -79,12 +80,24 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 200));
     _rotationController.forward();
 
-    // Navigate to home after splash duration
+    // Navigate after splash duration
     await Future.delayed(const Duration(milliseconds: 2500));
 
     if (mounted) {
-      // Always go to home - users can play offline without login
-      context.go('/');
+      // Kiểm tra xem user đã đăng nhập chưa và có phải admin không
+      try {
+        final apiService = ApiService();
+        final user = await apiService.getCurrentUser();
+        // Nếu là admin thì chuyển đến admin panel
+        if (user.isAdmin) {
+          context.go('/admin');
+        } else {
+          context.go('/');
+        }
+      } catch (e) {
+        // Nếu chưa đăng nhập hoặc lỗi, về home
+        context.go('/');
+      }
     }
   }
 
@@ -179,17 +192,21 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
                   return FadeTransition(
                     opacity: _fadeAnimation,
                     child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
                         PixelText(
                           text: 'RUBIK MASTER',
                           style: PixelTextStyle.display,
                           color: PixelColors.background,
+                          textAlign: TextAlign.center,
                         ),
                         const SizedBox(height: 12),
                         PixelText(
                           text: 'KHÁM PHÁ THẾ GIỚI RUBIK',
                           style: PixelTextStyle.body,
                           color: PixelColors.background.withOpacity(0.9),
+                          textAlign: TextAlign.center,
                         ),
                       ],
                     ),

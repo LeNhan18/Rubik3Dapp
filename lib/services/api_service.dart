@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
@@ -374,6 +375,78 @@ class ApiService {
       final error = jsonDecode(response.body) as Map<String, dynamic>;
       throw Exception(error['detail'] ?? 'Failed to update profile');
     }
+  }
+
+  // ========== UPLOAD AVATAR ==========
+  Future<User> uploadAvatar(String imagePath) async {
+    try {
+      // Kiểm tra file có tồn tại không
+      final file = File(imagePath);
+      if (!await file.exists()) {
+        throw Exception('File không tồn tại');
+      }
+      
+      final uri = Uri.parse('$baseUrl/users/me/avatar');
+      final request = http.MultipartRequest('POST', uri);
+      
+      // Thêm token vào headers
+      final headers = await _getHeaders();
+      request.headers.addAll({
+        'Authorization': headers['Authorization'] ?? '',
+      });
+      
+      // Thêm file với content type
+      final multipartFile = await http.MultipartFile.fromPath(
+        'file',
+        imagePath,
+        filename: imagePath.split('/').last,
+      );
+      request.files.add(multipartFile);
+      
+      // Gửi request
+      final streamedResponse = await request.send();
+      final response = await http.Response.fromStream(streamedResponse);
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        return User.fromJson(data);
+      } else {
+        // Parse error message
+        String errorMessage = 'Failed to upload avatar';
+        try {
+          final error = jsonDecode(response.body) as Map<String, dynamic>;
+          errorMessage = error['detail'] ?? errorMessage;
+        } catch (e) {
+          errorMessage = 'HTTP ${response.statusCode}: ${response.body}';
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Lỗi khi upload ảnh: ${e.toString()}');
+    }
+  }
+
+  // ========== GET AVATAR URL ==========
+  String getAvatarUrl(String? avatarPath) {
+    if (avatarPath == null || avatarPath.isEmpty) {
+      return '';
+    }
+    // Nếu đã là full URL thì trả về luôn
+    if (avatarPath.startsWith('http://') || avatarPath.startsWith('https://')) {
+      return avatarPath;
+    }
+    // Nếu là relative path, thêm base URL
+    if (avatarPath.startsWith('/')) {
+      return 'http://172.20.10.5:8000$avatarPath';
+    }
+    // Nếu là path dạng "api/users/avatars/..."
+    if (avatarPath.startsWith('api/')) {
+      return 'http://172.20.10.5:8000/$avatarPath';
+    }
+    return '$baseUrl/avatars/$avatarPath';
   }
 }
 

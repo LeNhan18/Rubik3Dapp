@@ -48,12 +48,13 @@ enum SwipeDirection {
 class RubikGestureHandler {
   // Threshold để xác định hướng vuốt (pixels)
   // Nếu khoảng cách vuốt < threshold này, không xoay (tránh rung)
-  // Giảm xuống để dễ xoay hơn, nhưng vẫn đủ để tránh rung
-  static const double _swipeThreshold = 20.0;
+  // Tăng lên để tránh xoay nhầm khi chưa đủ khoảng cách
+  static const double _swipeThreshold = 40.0;
   
   // Threshold để khóa trục (tỷ lệ)
   // Nếu |dx| / |dy| > threshold hoặc ngược lại, khóa trục đó
-  static const double _axisLockThreshold = 1.5;
+  // Tăng lên để khóa trục sớm hơn, tránh xoay nhầm hướng
+  static const double _axisLockThreshold = 2.0;
   
   // Vị trí bắt đầu vuốt
   Offset? _startPosition;
@@ -143,6 +144,7 @@ class RubikGestureHandler {
     }
     
     // Bước 3: Khóa trục để tránh xoay nhầm
+    // Khóa trục sớm hơn để tránh xoay nhầm hướng
     if (!_isAxisLocked) {
       final absDx = dx.abs();
       final absDy = dy.abs();
@@ -151,18 +153,27 @@ class RubikGestureHandler {
       if (absDx > absDy * _axisLockThreshold) {
         _isHorizontalLocked = true;
         _isAxisLocked = true;
+        // Khi đã khóa trục ngang, chỉ lưu delta theo chiều ngang
+        _lastDelta = Offset(dx, 0);
       }
       // Nếu vuốt theo chiều dọc nhiều hơn chiều ngang
       else if (absDy > absDx * _axisLockThreshold) {
         _isHorizontalLocked = false;
         _isAxisLocked = true;
+        // Khi đã khóa trục dọc, chỉ lưu delta theo chiều dọc
+        _lastDelta = Offset(0, dy);
+      } else {
+        // Chưa đủ để khóa trục, vẫn lưu delta đầy đủ
+        _lastDelta = delta;
+      }
+    } else {
+      // Đã khóa trục, chỉ cập nhật theo trục đã khóa
+      if (_isHorizontalLocked) {
+        _lastDelta = Offset(dx, 0);
+      } else {
+        _lastDelta = Offset(0, dy);
       }
     }
-    
-    // Bước 4: Lưu hướng vuốt (KHÔNG xoay ngay)
-    // Hướng sẽ được xử lý trong onPanEnd để đảm bảo chỉ xoay một lần
-    // Lưu delta cuối cùng để xác định hướng trong onPanEnd
-    _lastDelta = delta;
   }
   
   // Lưu delta cuối cùng để xác định hướng trong onPanEnd
@@ -325,94 +336,38 @@ class RubikGestureHandler {
   /// - CubeFace: Mặt cần xoay
   /// - clockwise: true = xoay theo chiều kim đồng hồ, false = ngược chiều
   /// 
-  /// Logic mapping đơn giản và mượt mà:
-  /// - Vuốt trên mặt nào thì xoay mặt đó theo hướng vuốt
-  /// - Vuốt sang phải/trái trên mặt ngang → xoay mặt đó theo chiều ngang
-  /// - Vuốt lên/xuống trên mặt dọc → xoay mặt đó theo chiều dọc
+  /// Logic mapping đã được sửa để đúng với mong muốn:
+  /// - Vuốt sang ngang (trái/phải) → xoay mặt U (trên) hoặc D (dưới)
+  /// - Vuốt lên xuống → xoay mặt R (phải) hoặc L (trái)
   /// 
-  /// Ví dụ:
-  /// - Vuốt trên mặt Front: trái = L', phải = R, lên = U', xuống = D'
-  /// - Vuốt trên mặt Right: trái = R', phải = R, lên = U', xuống = D'
-  /// - Vuốt trên mặt Up: trái = L', phải = R', lên = U', xuống = U
+  /// Logic đơn giản và nhất quán:
+  /// - Vuốt sang phải → xoay U (mặt trên) theo chiều kim đồng hồ
+  /// - Vuốt sang trái → xoay U' (mặt trên) ngược chiều kim đồng hồ
+  /// - Vuốt xuống → xoay R (mặt phải) theo chiều kim đồng hồ
+  /// - Vuốt lên → xoay R' (mặt phải) ngược chiều kim đồng hồ
+  /// 
+  /// Lưu ý: Logic này không phụ thuộc vào mặt đang được vuốt,
+  /// chỉ phụ thuộc vào hướng vuốt để đảm bảo nhất quán và dễ dự đoán.
   (CubeFace?, bool) _mapSwipeToRotation(CubeFace face, SwipeDirection direction) {
-    switch (face) {
-      case CubeFace.right:
-        // Vuốt trên mặt Right
-        switch (direction) {
-          case SwipeDirection.left:
-            return (CubeFace.right, false); // R'
-          case SwipeDirection.right:
-            return (CubeFace.right, true); // R
-          case SwipeDirection.up:
-            return (CubeFace.up, false); // U'
-          case SwipeDirection.down:
-            return (CubeFace.down, false); // D'
-        }
+    // Logic đơn giản: Chỉ dựa vào hướng vuốt, không phụ thuộc vào mặt đang vuốt
+    // Điều này đảm bảo hành vi nhất quán và dễ dự đoán
+    
+    switch (direction) {
+      case SwipeDirection.left:
+        // Vuốt sang trái → xoay U' (mặt trên ngược chiều)
+        return (CubeFace.up, false);
         
-      case CubeFace.left:
-        // Vuốt trên mặt Left
-        switch (direction) {
-          case SwipeDirection.left:
-            return (CubeFace.left, true); // L
-          case SwipeDirection.right:
-            return (CubeFace.left, false); // L'
-          case SwipeDirection.up:
-            return (CubeFace.up, true); // U
-          case SwipeDirection.down:
-            return (CubeFace.down, true); // D
-        }
+      case SwipeDirection.right:
+        // Vuốt sang phải → xoay U (mặt trên theo chiều kim đồng hồ)
+        return (CubeFace.up, true);
         
-      case CubeFace.up:
-        // Vuốt trên mặt Up
-        switch (direction) {
-          case SwipeDirection.left:
-            return (CubeFace.left, false); // L'
-          case SwipeDirection.right:
-            return (CubeFace.right, false); // R'
-          case SwipeDirection.up:
-            return (CubeFace.up, false); // U'
-          case SwipeDirection.down:
-            return (CubeFace.up, true); // U
-        }
+      case SwipeDirection.up:
+        // Vuốt lên → xoay R' (mặt phải ngược chiều)
+        return (CubeFace.right, false);
         
-      case CubeFace.down:
-        // Vuốt trên mặt Down
-        switch (direction) {
-          case SwipeDirection.left:
-            return (CubeFace.left, true); // L
-          case SwipeDirection.right:
-            return (CubeFace.right, true); // R
-          case SwipeDirection.up:
-            return (CubeFace.down, true); // D
-          case SwipeDirection.down:
-            return (CubeFace.down, false); // D'
-        }
-        
-      case CubeFace.front:
-        // Vuốt trên mặt Front
-        switch (direction) {
-          case SwipeDirection.left:
-            return (CubeFace.left, false); // L'
-          case SwipeDirection.right:
-            return (CubeFace.right, true); // R
-          case SwipeDirection.up:
-            return (CubeFace.up, false); // U'
-          case SwipeDirection.down:
-            return (CubeFace.down, false); // D'
-        }
-        
-      case CubeFace.back:
-        // Vuốt trên mặt Back
-        switch (direction) {
-          case SwipeDirection.left:
-            return (CubeFace.right, false); // R'
-          case SwipeDirection.right:
-            return (CubeFace.left, true); // L
-          case SwipeDirection.up:
-            return (CubeFace.up, true); // U
-          case SwipeDirection.down:
-            return (CubeFace.down, true); // D
-        }
+      case SwipeDirection.down:
+        // Vuốt xuống → xoay R (mặt phải theo chiều kim đồng hồ)
+        return (CubeFace.right, true);
     }
   }
 }

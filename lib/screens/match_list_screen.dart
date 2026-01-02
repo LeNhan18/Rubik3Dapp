@@ -95,7 +95,7 @@ class _MatchListScreenState extends State<MatchListScreen> {
         child: Column(
           children: [
             PixelHeader(
-              title: 'TRẬN ĐẤU CỦA TÔI',
+              title: 'TRẬN ĐẤU',
               showBackButton: true,
               onBackPressed: () => context.go('/'),
               actions: [
@@ -103,8 +103,8 @@ class _MatchListScreenState extends State<MatchListScreen> {
                   text: '↻',
                   onPressed: _loadMatches,
                   backgroundColor: PixelColors.primaryDark,
-                  width: 40,
-                  height: 40,
+                  width: 36,
+                  height: 36,
                   borderWidth: 2,
                   shadowOffset: 2,
                 ),
@@ -112,7 +112,8 @@ class _MatchListScreenState extends State<MatchListScreen> {
             ),
             // Filter chips
             Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              constraints: const BoxConstraints(maxHeight: 56),
               child: SingleChildScrollView(
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.symmetric(horizontal: 16),
@@ -197,7 +198,7 @@ class _MatchListScreenState extends State<MatchListScreen> {
       textColor: isSelected ? PixelColors.background : PixelColors.textPrimary,
       borderColor: PixelColors.border,
       width: null,
-      height: 36,
+      height: 32,
       borderWidth: 2,
       shadowOffset: 2,
     );
@@ -217,7 +218,7 @@ class _MatchListScreenState extends State<MatchListScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Expanded(
+                Flexible(
                   child: PixelText(
                     text: match.status.displayName.toUpperCase(),
                     style: PixelTextStyle.subtitle,
@@ -226,6 +227,8 @@ class _MatchListScreenState extends State<MatchListScreen> {
                         : isCompleted
                             ? PixelColors.info
                             : PixelColors.textPrimary,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
                   ),
                 ),
                 if (isCompleted && match.winnerId != null)

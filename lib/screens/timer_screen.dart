@@ -233,7 +233,6 @@ class _TimerScreenState extends ConsumerState<TimerScreen>
       }
     });
   }
-
   void _startTimer() {
     _inspectionTimer?.cancel();
 
@@ -267,7 +266,6 @@ class _TimerScreenState extends ConsumerState<TimerScreen>
       status: SolveStatus.normal,
       sessionId: 'current_session',
     );
-
     _sampleTimes.add(solveTime);
     _stats = Statistics(_sampleTimes);
 
@@ -406,8 +404,7 @@ class _TimerScreenState extends ConsumerState<TimerScreen>
                     _handleSpacePress(event is KeyDownEvent);
                   }
                 },
-                child: SafeArea(
-          child: Stack(
+                child: Stack(
             children: [
               // Confetti
               Align(
@@ -455,10 +452,8 @@ class _TimerScreenState extends ConsumerState<TimerScreen>
           ),
         ),
       ),
-            ),
-          ],
-        ),
-      ),
+      ]),
+    ),
     );
   }
 
@@ -720,7 +715,6 @@ class _TimerScreenState extends ConsumerState<TimerScreen>
         return Colors.red;
     }
   }
-
   Widget _buildStatCard(String label, String value) {
     return Expanded(
       child: Container(

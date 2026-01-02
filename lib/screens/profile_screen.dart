@@ -1,5 +1,7 @@
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:image_picker/image_picker.dart';
 import '../models/user.dart';
 import '../services/api_service.dart';
 import '../theme/pixel_colors.dart';
@@ -160,21 +162,52 @@ class _ProfileScreenState extends State<ProfileScreen> {
                       padding: const EdgeInsets.all(24),
                       child: Column(
                         children: [
-                          Container(
-                            width: 100,
-                            height: 100,
-                            decoration: BoxDecoration(
-                              color: PixelColors.background,
-                              border: Border.all(color: PixelColors.border, width: 3),
-                            ),
-                            child: Center(
-                              child: PixelText(
-                                text: _user!.username.substring(0, 1).toUpperCase(),
-                                style: PixelTextStyle.display,
-                                color: PixelColors.primary,
+                          GestureDetector(
+                            onTap: _isCurrentUser ? () => _showImagePicker(context) : null,
+                            child: Container(
+                              width: 100,
+                              height: 100,
+                              decoration: BoxDecoration(
+                                color: PixelColors.background,
+                                border: Border.all(color: PixelColors.border, width: 3),
+                                shape: BoxShape.circle,
                               ),
+                              child: _user!.avatarUrl != null && _user!.avatarUrl!.isNotEmpty
+                                  ? ClipOval(
+                                      child: Image.network(
+                                        _apiService.getAvatarUrl(_user!.avatarUrl),
+                                        width: 100,
+                                        height: 100,
+                                        fit: BoxFit.cover,
+                                        errorBuilder: (context, error, stackTrace) {
+                                          return Center(
+                                            child: PixelText(
+                                              text: _user!.username.substring(0, 1).toUpperCase(),
+                                              style: PixelTextStyle.display,
+                                              color: PixelColors.primary,
+                                            ),
+                                          );
+                                        },
+                                      ),
+                                    )
+                                  : Center(
+                                      child: PixelText(
+                                        text: _user!.username.substring(0, 1).toUpperCase(),
+                                        style: PixelTextStyle.display,
+                                        color: PixelColors.primary,
+                                      ),
+                                    ),
                             ),
                           ),
+                          if (_isCurrentUser)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: PixelText(
+                                text: 'CHẠM ĐỂ ĐỔI ẢNH',
+                                style: PixelTextStyle.caption,
+                                color: PixelColors.background.withOpacity(0.8),
+                              ),
+                            ),
                           const SizedBox(height: 16),
                           PixelText(
                             text: _user!.username.toUpperCase(),
@@ -391,6 +424,144 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
     );
   }
+
+  Future<void> _showImagePicker(BuildContext context) async {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: PixelColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            PixelCard(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  PixelText(
+                    text: 'CHỌN ẢNH ĐẠI DIỆN',
+                    style: PixelTextStyle.title,
+                    color: PixelColors.primary,
+                  ),
+                  const SizedBox(height: 16),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      _buildImagePickerOption(
+                        context,
+                        Icons.photo_library,
+                        'THƯ VIỆN',
+                        () => _pickImage(ImageSource.gallery),
+                      ),
+                      _buildImagePickerOption(
+                        context,
+                        Icons.camera_alt,
+                        'MÁY ẢNH',
+                        () => _pickImage(ImageSource.camera),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  PixelButton(
+                    text: 'HỦY',
+                    onPressed: () => Navigator.pop(context),
+                    backgroundColor: PixelColors.surface,
+                    textColor: PixelColors.textPrimary,
+                    width: 100,
+                    height: 40,
+                    borderWidth: 2,
+                    shadowOffset: 2,
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildImagePickerOption(
+    BuildContext context,
+    IconData icon,
+    String label,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.pop(context);
+        onTap();
+      },
+      child: PixelCard(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            Icon(icon, size: 40, color: PixelColors.primary),
+            const SizedBox(height: 8),
+            PixelText(
+              text: label,
+              style: PixelTextStyle.body,
+              color: PixelColors.textPrimary,
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImage(ImageSource source) async {
+    try {
+      final ImagePicker picker = ImagePicker();
+      final XFile? image = await picker.pickImage(
+        source: source,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() => _isLoading = true);
+        
+        try {
+          final updatedUser = await _apiService.uploadAvatar(image.path);
+          setState(() {
+            _user = updatedUser;
+            _isLoading = false;
+          });
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Cập nhật ảnh đại diện thành công'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } catch (e) {
+          setState(() => _isLoading = false);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Lỗi: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi khi chọn ảnh: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
 }
 
 class _EditProfileDialog extends StatefulWidget {
@@ -414,47 +585,136 @@ class _EditProfileDialog extends StatefulWidget {
 
 class _EditProfileDialogState extends State<_EditProfileDialog> {
   bool _isSaving = false;
+  final ImagePicker _imagePicker = ImagePicker();
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-          title: const Text('Chỉnh sửa hồ sơ'),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                TextField(
-                  controller: widget.usernameController,
-                  decoration: const InputDecoration(
-                    labelText: 'Tên người dùng',
-                    prefixIcon: Icon(Icons.person),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-                const SizedBox(height: 16),
-                TextField(
-                  controller: widget.emailController,
-                  keyboardType: TextInputType.emailAddress,
-                  decoration: const InputDecoration(
-                    labelText: 'Email',
-                    prefixIcon: Icon(Icons.email),
-                    border: OutlineInputBorder(),
-                  ),
-                ),
-              ],
+    return PixelCard(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          PixelText(
+            text: 'CHỈNH SỬA HỒ SƠ',
+            style: PixelTextStyle.headline,
+            color: PixelColors.primary,
+          ),
+          const SizedBox(height: 24),
+          // Avatar preview and change button
+          GestureDetector(
+            onTap: _pickAvatar,
+            child: Container(
+              width: 80,
+              height: 80,
+              decoration: BoxDecoration(
+                color: PixelColors.background,
+                border: Border.all(color: PixelColors.border, width: 2),
+                shape: BoxShape.circle,
+              ),
+              child: widget.currentUser.avatarUrl != null && widget.currentUser.avatarUrl!.isNotEmpty
+                  ? ClipOval(
+                      child: Image.network(
+                        widget.apiService.getAvatarUrl(widget.currentUser.avatarUrl),
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(
+                            child: PixelText(
+                              text: widget.currentUser.username.substring(0, 1).toUpperCase(),
+                              style: PixelTextStyle.headline,
+                              color: PixelColors.primary,
+                            ),
+                          );
+                        },
+                      ),
+                    )
+                  : Center(
+                      child: PixelText(
+                        text: widget.currentUser.username.substring(0, 1).toUpperCase(),
+                        style: PixelTextStyle.headline,
+                        color: PixelColors.primary,
+                      ),
+                    ),
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: _isSaving
-                  ? null
-                  : () => Navigator.of(context).pop(),
-              child: const Text('Hủy'),
+          const SizedBox(height: 8),
+          PixelText(
+            text: 'CHẠM ĐỂ ĐỔI ẢNH',
+            style: PixelTextStyle.caption,
+            color: PixelColors.textSecondary,
+          ),
+          const SizedBox(height: 24),
+          // Form fields
+          PixelCard(
+            padding: EdgeInsets.zero,
+            child: TextField(
+              controller: widget.usernameController,
+              style: const TextStyle(
+                fontFamily: 'VT323',
+                fontSize: 20,
+                color: PixelColors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                labelText: 'TÊN NGƯỜI DÙNG',
+                labelStyle: const TextStyle(
+                  fontFamily: 'VT323',
+                  fontSize: 18,
+                  color: PixelColors.textSecondary,
+                ),
+                prefixIcon: const Icon(Icons.person, color: PixelColors.primary),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(16),
+              ),
             ),
-            ElevatedButton(
-              onPressed: _isSaving
-                  ? null
-                  : () async {
+          ),
+          const SizedBox(height: 16),
+          PixelCard(
+            padding: EdgeInsets.zero,
+            child: TextField(
+              controller: widget.emailController,
+              keyboardType: TextInputType.emailAddress,
+              style: const TextStyle(
+                fontFamily: 'VT323',
+                fontSize: 20,
+                color: PixelColors.textPrimary,
+              ),
+              decoration: InputDecoration(
+                labelText: 'EMAIL',
+                labelStyle: const TextStyle(
+                  fontFamily: 'VT323',
+                  fontSize: 18,
+                  color: PixelColors.textSecondary,
+                ),
+                prefixIcon: const Icon(Icons.email, color: PixelColors.primary),
+                border: InputBorder.none,
+                contentPadding: const EdgeInsets.all(16),
+              ),
+            ),
+          ),
+          const SizedBox(height: 24),
+          // Buttons
+          Row(
+            mainAxisAlignment: MainAxisAlignment.end,
+            children: [
+              PixelButton(
+                text: 'HỦY',
+                onPressed: _isSaving
+                    ? null
+                    : () => Navigator.of(context).pop(),
+                backgroundColor: PixelColors.surface,
+                textColor: PixelColors.textPrimary,
+                width: 80,
+                height: 40,
+                borderWidth: 2,
+                shadowOffset: 2,
+              ),
+              const SizedBox(width: 8),
+              PixelButton(
+                text: _isSaving ? '...' : 'LƯU',
+                onPressed: _isSaving
+                    ? null
+                    : () async {
                       final newUsername = widget.usernameController.text.trim();
                       final newEmail = widget.emailController.text.trim();
 
@@ -513,15 +773,66 @@ class _EditProfileDialogState extends State<_EditProfileDialog> {
                         }
                       }
                     },
-              child: _isSaving
-                  ? const SizedBox(
-                      width: 20,
-                      height: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : const Text('Lưu'),
-            ),
-          ],
+                backgroundColor: PixelColors.accent,
+                width: 80,
+                height: 40,
+                borderWidth: 2,
+                shadowOffset: 2,
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickAvatar() async {
+    try {
+      final XFile? image = await _imagePicker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 512,
+        maxHeight: 512,
+        imageQuality: 85,
+      );
+
+      if (image != null) {
+        setState(() => _isSaving = true);
+        
+        try {
+          final updatedUser = await widget.apiService.uploadAvatar(image.path);
+          widget.onUpdated(updatedUser);
+          
+          setState(() => _isSaving = false);
+          
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Cập nhật ảnh đại diện thành công'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          }
+        } catch (e) {
+          setState(() => _isSaving = false);
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Lỗi: ${e.toString()}'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Lỗi khi chọn ảnh: ${e.toString()}'),
+            backgroundColor: Colors.red,
+          ),
         );
+      }
+    }
   }
 }
