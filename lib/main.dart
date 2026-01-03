@@ -18,53 +18,84 @@ import 'screens/leaderboard_screen.dart';
 import 'screens/profile_screen.dart';
 import 'screens/friend_chat_screen.dart';
 import 'screens/rubik_solver_ui_screen.dart';
+import 'screens/cube_scan_screen.dart';
 import 'screens/admin_screen.dart';
 import 'models/user.dart';
 import 'theme/pixel_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  print('=== APP STARTING ===');
 
-  // Initialize Hive database
-  await Hive.initFlutter();
+  try {
+    print('Initializing Hive...');
+    // Initialize Hive database
+    await Hive.initFlutter();
+    print('Hive initialized');
 
-  // Open basic settings box
-  await Hive.openBox('settings'); // Set preferred orientations
-  await SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,
-    DeviceOrientation.portraitDown,
-  ]);
+    print('Opening settings box...');
+    // Open basic settings box
+    await Hive.openBox('settings');
+    print('Settings box opened');
+    
+    // Set preferred orientations
+    await SystemChrome.setPreferredOrientations([
+      DeviceOrientation.portraitUp,
+      DeviceOrientation.portraitDown,
+    ]);
 
-  // Set system UI overlay style
-  SystemChrome.setSystemUIOverlayStyle(
-    const SystemUiOverlayStyle(
-      statusBarColor: Colors.transparent,
-      statusBarIconBrightness: Brightness.dark,
-      systemNavigationBarColor: Colors.transparent,
-      systemNavigationBarIconBrightness: Brightness.dark,
-    ),
-  );
+    // Set system UI overlay style
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        statusBarColor: Colors.transparent,
+        statusBarIconBrightness: Brightness.dark,
+        systemNavigationBarColor: Colors.transparent,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
 
-  // Đảm bảo dialog quyền không bị che khuất và nội dung không tràn lên status bar
-  // Sử dụng SystemUiMode.edgeToEdge nhưng vẫn giữ padding để tránh tràn
-  SystemChrome.setEnabledSystemUIMode(
-    SystemUiMode.edgeToEdge,
-  );
+    // Đảm bảo dialog quyền không bị che khuất và nội dung không tràn lên status bar
+    // Sử dụng SystemUiMode.edgeToEdge nhưng vẫn giữ padding để tránh tràn
+    SystemChrome.setEnabledSystemUIMode(
+      SystemUiMode.edgeToEdge,
+    );
+    print('System UI configured');
+  } catch (e, stackTrace) {
+    // Log error nhưng vẫn chạy app
+    print('ERROR initializing app: $e');
+    print('Stack: $stackTrace');
+  }
 
+  // Wrap app với error boundary
+  FlutterError.onError = (FlutterErrorDetails details) {
+    FlutterError.presentError(details);
+    print('=== FLUTTER ERROR ===');
+    print('Exception: ${details.exception}');
+    print('Stack: ${details.stack}');
+    print('Library: ${details.library}');
+    print('Context: ${details.context}');
+  };
+
+  print('Running app...');
   runApp(
     ProviderScope(
       child: RubikMasterApp(),
     ),
   );
+  print('App started');
 }
 
 class RubikMasterApp extends ConsumerWidget {
   RubikMasterApp({super.key});
 
-  // GoRouter configuration
-  late final GoRouter _router = GoRouter(
-    initialLocation: '/splash',
-    routes: [
+  // GoRouter configuration với error handling
+  GoRouter _createRouter() {
+    try {
+      return GoRouter(
+        initialLocation: '/splash',
+        debugLogDiagnostics: true,
+        routes: [
       GoRoute(
         path: '/splash',
         builder: (context, state) => const SplashScreen(),
@@ -145,24 +176,103 @@ class RubikMasterApp extends ConsumerWidget {
         path: '/admin',
         builder: (context, state) => const AdminScreen(),
       ),
+      GoRoute(
+        path: '/scan-cube',
+        builder: (context, state) => const CubeScanScreen(),
+      ),
     ],
-  );
+      );
+    } catch (e, stackTrace) {
+      print('Error creating router: $e');
+      print('Stack: $stackTrace');
+      // Trả về router đơn giản với splash screen
+      return GoRouter(
+        initialLocation: '/splash',
+        routes: [
+          GoRoute(
+            path: '/splash',
+            builder: (context, state) => const SplashScreen(),
+          ),
+          GoRoute(
+            path: '/',
+            builder: (context, state) => Scaffold(
+              body: Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Icon(Icons.error, size: 64, color: Colors.red),
+                    SizedBox(height: 16),
+                    Text('Lỗi khởi tạo router'),
+                    SizedBox(height: 8),
+                    Text('$e', style: TextStyle(fontSize: 12)),
+                  ],
+                ),
+              ),
+            ),
+          ),
+        ],
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    return MaterialApp.router(
-      debugShowCheckedModeBanner: false,
-      theme: PixelTheme.lightTheme,
-      routerConfig: _router,
-      // Đảm bảo nội dung không tràn lên status bar
-      builder: (context, child) {
-        final mediaQuery = MediaQuery.of(context);
-        // Giữ nguyên padding từ MediaQuery gốc để tránh tràn lên status bar
-        return MediaQuery(
-          data: mediaQuery,
-          child: child!,
+    try {
+      print('RubikMasterApp: build called');
+      final router = _createRouter();
+      print('RubikMasterApp: router created');
+      
+      ThemeData theme;
+      try {
+        theme = PixelTheme.lightTheme;
+        print('RubikMasterApp: theme created');
+      } catch (e) {
+        print('RubikMasterApp: ERROR creating theme: $e');
+        // Fallback theme
+        theme = ThemeData(
+          primarySwatch: Colors.blue,
+          scaffoldBackgroundColor: Colors.white,
         );
-      },
-    );
+      }
+      
+      return MaterialApp.router(
+        debugShowCheckedModeBanner: false,
+        theme: theme,
+        routerConfig: router,
+        // Đảm bảo nội dung không tràn lên status bar
+        builder: (context, child) {
+          final mediaQuery = MediaQuery.of(context);
+          // Giữ nguyên padding từ MediaQuery gốc để tránh tràn lên status bar
+          return MediaQuery(
+            data: mediaQuery,
+            child: child ?? const Scaffold(
+              body: Center(
+                child: CircularProgressIndicator(),
+              ),
+            ),
+          );
+        },
+      );
+    } catch (e, stackTrace) {
+      // Nếu có lỗi, hiển thị error screen thay vì crash
+      print('Error building app: $e');
+      print('Stack: $stackTrace');
+      return MaterialApp(
+        home: Scaffold(
+          body: Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(Icons.error, size: 64, color: Colors.red),
+                SizedBox(height: 16),
+                Text('Lỗi khởi động app'),
+                SizedBox(height: 8),
+                Text('$e', style: TextStyle(fontSize: 12)),
+              ],
+            ),
+          ),
+        ),
+      );
+    }
   }
 }

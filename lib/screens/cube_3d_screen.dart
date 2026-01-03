@@ -546,8 +546,11 @@ class _Cube3DScreenState extends State<Cube3DScreen>
 
       // TODO: Uncomment the code below when you have a real backend running
       /*
-      // Call backend API
-      const apiUrl = 'http://localhost:8000/rubik/hint';
+      // Local development
+      const apiUrl = 'http://172.20.10.5:8000/rubik/hint';
+      
+      // Fly.io production (commented)
+      // const apiUrl = 'https://app-falling-wind-2135.fly.dev/rubik/hint';
 
       final response = await http
           .post(

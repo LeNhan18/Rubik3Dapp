@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -25,47 +26,54 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void initState() {
     super.initState();
+    print('SplashScreen: initState called');
 
-    _fadeController = AnimationController(
-      duration: const Duration(milliseconds: 1500),
-      vsync: this,
-    );
+    try {
+      _fadeController = AnimationController(
+        duration: const Duration(milliseconds: 1500),
+        vsync: this,
+      );
 
-    _scaleController = AnimationController(
-      duration: const Duration(milliseconds: 1200),
-      vsync: this,
-    );
+      _scaleController = AnimationController(
+        duration: const Duration(milliseconds: 1200),
+        vsync: this,
+      );
 
-    _rotationController = AnimationController(
-      duration: const Duration(milliseconds: 3000),
-      vsync: this,
-    );
+      _rotationController = AnimationController(
+        duration: const Duration(milliseconds: 3000),
+        vsync: this,
+      );
 
-    _fadeAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _fadeController,
-      curve: Curves.easeInOut,
-    ));
+      _fadeAnimation = Tween<double>(
+        begin: 0.0,
+        end: 1.0,
+      ).animate(CurvedAnimation(
+        parent: _fadeController,
+        curve: Curves.easeInOut,
+      ));
 
-    _scaleAnimation = Tween<double>(
-      begin: 0.5,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _scaleController,
-      curve: Curves.elasticOut,
-    ));
+      _scaleAnimation = Tween<double>(
+        begin: 0.5,
+        end: 1.0,
+      ).animate(CurvedAnimation(
+        parent: _scaleController,
+        curve: Curves.elasticOut,
+      ));
 
-    _rotationAnimation = Tween<double>(
-      begin: 0.0,
-      end: 1.0,
-    ).animate(CurvedAnimation(
-      parent: _rotationController,
-      curve: Curves.easeInOut,
-    ));
+      _rotationAnimation = Tween<double>(
+        begin: 0.0,
+        end: 1.0,
+      ).animate(CurvedAnimation(
+        parent: _rotationController,
+        curve: Curves.easeInOut,
+      ));
 
-    _startAnimations();
+      print('SplashScreen: Animations initialized');
+      _startAnimations();
+    } catch (e, stackTrace) {
+      print('SplashScreen: ERROR in initState: $e');
+      print('Stack: $stackTrace');
+    }
   }
 
   void _startAnimations() async {
@@ -84,20 +92,49 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
     await Future.delayed(const Duration(milliseconds: 2500));
 
     if (mounted) {
+      // TẠM THỜI: Bỏ qua API call để test app có chạy được không
+      // TODO: Bật lại sau khi fix network issue
+      print('Splash: Skipping API call for testing - navigating to home');
+      if (mounted) {
+        context.go('/');
+      }
+      
+      /* COMMENTED OUT - Uncomment sau khi fix network
       // Kiểm tra xem user đã đăng nhập chưa và có phải admin không
       try {
+        print('Splash: Checking user authentication...');
         final apiService = ApiService();
-        final user = await apiService.getCurrentUser();
+        // Giảm timeout xuống 2 giây để nhanh hơn
+        final user = await apiService.getCurrentUser().timeout(
+          const Duration(seconds: 2),
+          onTimeout: () {
+            print('Splash: API timeout - navigating to home');
+            throw TimeoutException('API timeout');
+          },
+        );
+        print('Splash: User authenticated - isAdmin: ${user.isAdmin}');
         // Nếu là admin thì chuyển đến admin panel
         if (user.isAdmin) {
-          context.go('/admin');
+          if (mounted) {
+            print('Splash: Navigating to admin panel');
+            context.go('/admin');
+          }
         } else {
-          context.go('/');
+          if (mounted) {
+            print('Splash: Navigating to home');
+            context.go('/');
+          }
         }
       } catch (e) {
         // Nếu chưa đăng nhập hoặc lỗi, về home
-        context.go('/');
+        // Log error để debug
+        print('Splash screen error: $e');
+        print('Splash: Navigating to home (error fallback)');
+        if (mounted) {
+          context.go('/');
+        }
       }
+      */
     }
   }
 
@@ -111,9 +148,11 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: PixelColors.background,
-      body: Container(
+    print('SplashScreen: build called');
+    try {
+      return Scaffold(
+        backgroundColor: PixelColors.background,
+        body: Container(
         width: double.infinity,
         height: double.infinity,
         decoration: const BoxDecoration(
@@ -252,5 +291,25 @@ class _SplashScreenState extends ConsumerState<SplashScreen>
         ),
       ),
     );
+    } catch (e, stackTrace) {
+      print('SplashScreen: ERROR in build: $e');
+      print('Stack: $stackTrace');
+      // Fallback UI nếu có lỗi
+      return Scaffold(
+        backgroundColor: Colors.blue,
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.error, size: 64, color: Colors.white),
+              SizedBox(height: 16),
+              Text('Lỗi hiển thị splash screen', style: TextStyle(color: Colors.white)),
+              SizedBox(height: 8),
+              Text('$e', style: TextStyle(color: Colors.white70, fontSize: 12)),
+            ],
+          ),
+        ),
+      );
+    }
   }
 }
