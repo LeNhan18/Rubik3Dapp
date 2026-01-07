@@ -29,6 +29,9 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
   
   // Overlay để hướng dẫn người dùng
   bool _showOverlay = true;
+  
+  // Trạng thái edit: cho phép chỉnh sửa màu sau khi scan
+  bool _isEditMode = false;
 
   @override
   void initState() {
@@ -108,25 +111,48 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
       // Scan mặt này
       final scannedFace = CubeScannerService.scanFace(imageBytes);
       
-      setState(() {
-        _scannedFaces[_currentFaceName] = scannedFace;
-        _currentFaceIndex++;
-        _isProcessing = false;
-      });
+      // Kiểm tra xem có scan được đủ màu không (ít nhất 5/9 ô phải có màu)
+      int validColors = 0;
+      for (var row in scannedFace) {
+        for (var color in row) {
+          if (color != null) validColors++;
+        }
+      }
       
-      // Nếu đã scan xong 6 mặt
-      if (_currentFaceIndex >= _faces.length) {
-        _onScanComplete();
-      } else {
+      if (validColors < 5) {
+        // Nếu scan không đủ màu, báo lỗi và không chuyển mặt
+        setState(() {
+          _isProcessing = false;
+        });
+        
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Đã scan mặt $_currentFaceDisplayName'),
-              backgroundColor: Colors.green,
-              duration: Duration(seconds: 1),
+              content: Text('Scan không đủ màu ($validColors/9). Vui lòng thử lại với ánh sáng tốt hơn.'),
+              backgroundColor: Colors.orange,
+              duration: Duration(seconds: 3),
             ),
           );
         }
+        return;
+      }
+      
+      // Lưu kết quả và cho phép chỉnh sửa
+      setState(() {
+        _scannedFaces[_currentFaceName] = scannedFace;
+        _isProcessing = false;
+        _isEditMode = true; // Bật chế độ edit
+      });
+      
+      // Hiển thị thông báo và hướng dẫn chỉnh sửa
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('✓ Đã scan! Tap vào ô để chỉnh sửa màu nếu cần'),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 3),
+          ),
+        );
       }
     } catch (e) {
       setState(() {
@@ -138,6 +164,7 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
           SnackBar(
             content: Text('Lỗi scan: $e'),
             backgroundColor: Colors.red,
+            duration: Duration(seconds: 3),
           ),
         );
       }
@@ -147,7 +174,12 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
   void _onScanComplete() {
     // Chuyển kết quả về màn hình trước đó
     if (mounted) {
-      context.pop(_scannedFaces);
+      if (Navigator.of(context).canPop()) {
+        context.pop(_scannedFaces);
+      } else {
+        // Nếu không có route để pop, về home
+        context.go('/');
+      }
     }
   }
 
@@ -202,7 +234,13 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
                child: PixelHeader(
                  title: 'SCAN RUBIK',
                  showBackButton: true,
-                 onBackPressed: () => context.pop(),
+                 onBackPressed: () {
+                   if (Navigator.of(context).canPop()) {
+                     context.pop();
+                   } else {
+                     context.go('/');
+                   }
+                 },
                ),
             ),
           ),
@@ -220,106 +258,125 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
   }
 
   Widget _buildOverlay() {
+    final screenSize = MediaQuery.of(context).size;
+    final gridSize = screenSize.width * 0.7; // 70% chiều rộng màn hình
+    
     return Container(
       color: Colors.black54,
-      child: Column(
+      child: Stack(
         children: [
-          SizedBox(height: 100),
-          
-          // Hướng dẫn
-          Container(
-            padding: EdgeInsets.all(16),
-            margin: EdgeInsets.symmetric(horizontal: 20),
-            decoration: BoxDecoration(
-              color: Colors.black87,
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: Colors.yellow, width: 2),
-            ),
-            child: Column(
-              children: [
-                Text(
-                  'Mặt ${_currentFaceIndex + 1}/6',
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+          // Hướng dẫn ở trên
+          Positioned(
+            top: 100,
+            left: 20,
+            right: 20,
+            child: Container(
+              padding: EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.black87,
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: Colors.yellow, width: 2),
+              ),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    'Mặt ${_currentFaceIndex + 1}/6',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  _currentFaceDisplayName,
-                  style: TextStyle(
-                    color: Colors.yellow,
-                    fontSize: 16,
-                    fontWeight: FontWeight.bold,
+                  SizedBox(height: 8),
+                  Text(
+                    _currentFaceDisplayName,
+                    style: TextStyle(
+                      color: Colors.yellow,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
-                ),
-                SizedBox(height: 8),
-                Text(
-                  'Đặt mặt này vào khung 3x3',
-                  style: TextStyle(color: Colors.white70, fontSize: 14),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 4),
-                Text(
-                  'Đảm bảo đủ ánh sáng và căn chỉnh đúng',
-                  style: TextStyle(color: Colors.white60, fontSize: 12),
-                  textAlign: TextAlign.center,
-                ),
-              ],
+                  SizedBox(height: 8),
+                  Text(
+                    'Đặt mặt này vào khung 3x3',
+                    style: TextStyle(color: Colors.white70, fontSize: 14),
+                    textAlign: TextAlign.center,
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    'Đảm bảo đủ ánh sáng và căn chỉnh đúng',
+                    style: TextStyle(color: Colors.white60, fontSize: 12),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              ),
             ),
           ),
           
-          Spacer(),
-          
-          // Khung 3x3 để căn chỉnh
-          Container(
-            margin: EdgeInsets.all(40),
-            width: double.infinity,
-            height: MediaQuery.of(context).size.width - 80,
-            decoration: BoxDecoration(
-              border: Border.all(color: Colors.yellow, width: 3),
-              borderRadius: BorderRadius.circular(8),
-            ),
-            child: GridView.builder(
-              physics: NeverScrollableScrollPhysics(),
-              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 3,
-                crossAxisSpacing: 2,
-                mainAxisSpacing: 2,
+          // Khung 3x3 căn giữa màn hình
+          Center(
+            child: Container(
+              width: gridSize,
+              height: gridSize,
+              decoration: BoxDecoration(
+                border: Border.all(color: Colors.yellow, width: 3),
+                borderRadius: BorderRadius.circular(8),
+                color: Colors.transparent,
               ),
-              itemCount: 9,
-              itemBuilder: (context, index) {
-                // Hiển thị màu đã scan nếu có
-                if (_currentFaceIndex > 0 && 
-                    _scannedFaces.containsKey(_faces[_currentFaceIndex - 1])) {
-                  final row = index ~/ 3;
-                  final col = index % 3;
-                  final face = _scannedFaces[_faces[_currentFaceIndex - 1]]!;
-                  
-                  if (row < face.length && col < face[row].length) {
-                    final color = face[row][col];
-                    if (color != null) {
-                      return Container(
-                        decoration: BoxDecoration(
-                          border: Border.all(color: Colors.white30, width: 1),
-                          color: _getColorFromCubeColor(color),
+              child: Table(
+                border: TableBorder.all(
+                  color: Colors.white30,
+                  width: 1,
+                ),
+                children: List.generate(3, (row) {
+                  return TableRow(
+                    children: List.generate(3, (col) {
+                      // Hiển thị màu đã scan nếu có
+                      Color cellColor = Colors.transparent;
+                      CubeColor? currentColor;
+                      
+                      if (_scannedFaces.containsKey(_currentFaceName)) {
+                        final face = _scannedFaces[_currentFaceName]!;
+                        if (row < face.length && col < face[row].length) {
+                          currentColor = face[row][col];
+                          if (currentColor != null) {
+                            cellColor = _getColorFromCubeColor(currentColor);
+                          }
+                        }
+                      }
+                      
+                      return GestureDetector(
+                        onTap: _isEditMode ? () => _editColor(row, col) : null,
+                        child: Container(
+                          width: gridSize / 3,
+                          height: gridSize / 3,
+                          decoration: _isEditMode && currentColor != null
+                              ? BoxDecoration(
+                                  color: cellColor,
+                                  border: Border.all(
+                                    color: Colors.yellow,
+                                    width: 2,
+                                  ),
+                                )
+                              : BoxDecoration(
+                                  color: cellColor,
+                                ),
+                          child: _isEditMode && currentColor == null
+                              ? Icon(
+                                  Icons.add_circle_outline,
+                                  color: Colors.white70,
+                                  size: 30,
+                                )
+                              : null,
                         ),
                       );
-                    }
-                  }
-                }
-                
-                return Container(
-                  decoration: BoxDecoration(
-                    border: Border.all(color: Colors.white30, width: 1),
-                  ),
-                );
-              },
+                    }),
+                  );
+                }),
+              ),
             ),
           ),
-          
-          Spacer(),
         ],
       ),
     );
@@ -342,6 +399,187 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
       case CubeColor.yellow:
         return Colors.yellow;
     }
+  }
+
+  /// Chỉnh sửa màu của một ô
+  void _editColor(int row, int col) {
+    if (!_scannedFaces.containsKey(_currentFaceName)) {
+      // Nếu chưa có face, tạo mới
+      _scannedFaces[_currentFaceName] = List.generate(
+        3,
+        (r) => List.generate(3, (c) => null as CubeColor?),
+      );
+    }
+    
+    final face = _scannedFaces[_currentFaceName]!;
+    final currentColor = face[row][col];
+    
+    // Hiển thị bottom sheet để chọn màu
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.black87,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (context) => Container(
+        padding: EdgeInsets.all(20),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              'Chọn màu cho ô ($row, $col)',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            SizedBox(height: 20),
+            Wrap(
+              spacing: 20,
+              runSpacing: 20,
+              alignment: WrapAlignment.center,
+              children: [
+                // Nút xóa màu (null)
+                _buildColorOption(
+                  null,
+                  'Xóa',
+                  Colors.grey,
+                  currentColor == null,
+                  () {
+                    setState(() {
+                      face[row][col] = null;
+                    });
+                    Navigator.pop(context);
+                  },
+                ),
+                // Các màu Rubik
+                _buildColorOption(
+                  CubeColor.white,
+                  'Trắng',
+                  Colors.white,
+                  currentColor == CubeColor.white,
+                  () {
+                    setState(() {
+                      face[row][col] = CubeColor.white;
+                    });
+                    Navigator.pop(context);
+                  },
+                ),
+                _buildColorOption(
+                  CubeColor.red,
+                  'Đỏ',
+                  Colors.red,
+                  currentColor == CubeColor.red,
+                  () {
+                    setState(() {
+                      face[row][col] = CubeColor.red;
+                    });
+                    Navigator.pop(context);
+                  },
+                ),
+                _buildColorOption(
+                  CubeColor.blue,
+                  'Xanh dương',
+                  Colors.blue,
+                  currentColor == CubeColor.blue,
+                  () {
+                    setState(() {
+                      face[row][col] = CubeColor.blue;
+                    });
+                    Navigator.pop(context);
+                  },
+                ),
+                _buildColorOption(
+                  CubeColor.orange,
+                  'Cam',
+                  Colors.orange,
+                  currentColor == CubeColor.orange,
+                  () {
+                    setState(() {
+                      face[row][col] = CubeColor.orange;
+                    });
+                    Navigator.pop(context);
+                  },
+                ),
+                _buildColorOption(
+                  CubeColor.green,
+                  'Xanh lá',
+                  Colors.green,
+                  currentColor == CubeColor.green,
+                  () {
+                    setState(() {
+                      face[row][col] = CubeColor.green;
+                    });
+                    Navigator.pop(context);
+                  },
+                ),
+                _buildColorOption(
+                  CubeColor.yellow,
+                  'Vàng',
+                  Colors.yellow,
+                  currentColor == CubeColor.yellow,
+                  () {
+                    setState(() {
+                      face[row][col] = CubeColor.yellow;
+                    });
+                    Navigator.pop(context);
+                  },
+                ),
+              ],
+            ),
+            SizedBox(height: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildColorOption(
+    CubeColor? color,
+    String label,
+    Color displayColor,
+    bool isSelected,
+    VoidCallback onTap,
+  ) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: 80,
+        height: 80,
+        decoration: BoxDecoration(
+          color: displayColor,
+          border: Border.all(
+            color: isSelected ? Colors.yellow : Colors.white30,
+            width: isSelected ? 3 : 1,
+          ),
+          borderRadius: BorderRadius.circular(8),
+        ),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: displayColor,
+                border: Border.all(color: Colors.black26, width: 1),
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   Widget _buildControls() {
@@ -379,8 +617,49 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
           
           SizedBox(height: 20),
           
-          // Nút chụp
-          if (_currentFaceIndex < _faces.length)
+          // Nút chụp hoặc tiếp tục
+          if (_isEditMode)
+            Row(
+              children: [
+                Expanded(
+                  child: PixelButton(
+                    text: 'SCAN LẠI',
+                    onPressed: () {
+                      setState(() {
+                        _isEditMode = false;
+                        _scannedFaces.remove(_currentFaceName);
+                      });
+                    },
+                  ),
+                ),
+                SizedBox(width: 10),
+                Expanded(
+                  flex: 2,
+                  child: PixelButton(
+                    text: 'TIẾP TỤC',
+                    onPressed: () {
+                      setState(() {
+                        _isEditMode = false;
+                        _currentFaceIndex++;
+                      });
+                      
+                      if (_currentFaceIndex >= _faces.length) {
+                        _onScanComplete();
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('Chuyển sang mặt ${_currentFaceIndex + 1}/6'),
+                            backgroundColor: Colors.blue,
+                            duration: Duration(milliseconds: 800),
+                          ),
+                        );
+                      }
+                    },
+                  ),
+                ),
+              ],
+            )
+          else if (_currentFaceIndex < _faces.length)
             PixelButton(
               text: _isProcessing ? 'ĐANG XỬ LÝ...' : 'CHỤP VÀ SCAN',
               onPressed: _isProcessing ? null : _captureAndScan,

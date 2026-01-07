@@ -16,7 +16,6 @@ class FriendshipService:
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Cannot add yourself as a friend"
             )
-        
         # Check if user2 exists
         user2 = self.db.query(User).filter(User.id == friendship_data.user2_id).first()
         if not user2:
@@ -24,7 +23,6 @@ class FriendshipService:
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
             )
-        
         # Check if friendship already exists
         existing = self.db.query(Friendship).filter(
             ((Friendship.user1_id == user1_id) & (Friendship.user2_id == friendship_data.user2_id)) |
@@ -42,7 +40,6 @@ class FriendshipService:
                     status_code=status.HTTP_400_BAD_REQUEST,
                     detail="Friend request already pending"
                 )
-        
         # Create friendship
         friendship = Friendship(
             user1_id=user1_id,

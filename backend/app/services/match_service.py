@@ -224,4 +224,3 @@ class MatchService:
         # Update ratings (ensure minimum of 0)
         player1.elo_rating = max(0, new_rating1)
         player2.elo_rating = max(0, new_rating2)
-

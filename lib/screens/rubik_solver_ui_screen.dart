@@ -13,7 +13,6 @@ class RubikSolverUIScreen extends StatefulWidget {
   @override
   State<RubikSolverUIScreen> createState() => _RubikSolverUIScreenState();
 }
-
 class _RubikSolverUIScreenState extends State<RubikSolverUIScreen>
     with TickerProviderStateMixin {
   // Cube state - 6 faces, mỗi face là 3x3 grid
@@ -36,7 +35,7 @@ class _RubikSolverUIScreenState extends State<RubikSolverUIScreen>
   Map<String, List<List<CubeColor?>>> _initializeSolvedCube() {
     return {
       'up': List.generate(
-          3, (_) => List.filled(3, CubeColor.white, growable: false).toList()),
+          3, (_) => List.filled(3   , CubeColor.white, growable: false).toList()),
       'down': List.generate(
           3, (_) => List.filled(3, CubeColor.yellow, growable: false).toList()),
       'front': List.generate(

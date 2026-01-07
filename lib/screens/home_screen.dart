@@ -55,6 +55,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       color: Colors.deepPurple,
     ),
     _HomeButton(
+      title: 'Scan Rubik',
+      subtitle: 'Scan real cube',
+      icon: Icons.camera_alt,
+      route: '/scan-cube',
+      color: Colors.teal,
+    ),
+    _HomeButton(
       title: '3D Solver',
       subtitle: 'Shuffle & solve 3D',
       icon: Icons.auto_fix_high,

@@ -12,7 +12,6 @@ class RoleService:
     def get_all_roles(self) -> List[Role]:
         """Get all roles"""
         return self.db.query(Role).all()
-
     def get_role_by_id(self, role_id: int) -> Optional[Role]:
         """Get role by ID"""
         return self.db.query(Role).filter(Role.id == role_id).first()

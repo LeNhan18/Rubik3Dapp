@@ -101,9 +101,7 @@ class ConnectionManager:
                     "type": "joined_match",
                     "match_id": match_id
                 }, user_id)
-        
         elif message_type == "leave_match":
             match_id = data.get("match_id")
             if match_id:
                 await self.leave_match(user_id, match_id)
-
