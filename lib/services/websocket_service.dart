@@ -24,7 +24,7 @@ class WebSocketService {
     _token = token;
 
     // Local development
-    final uri = Uri.parse('ws://172.20.10.5:8000/ws/$userId?token=$token');
+    final uri = Uri.parse('ws://192.168.2.26:8000/ws/$userId?token=$token');
     
     // Fly.io production (commented)
     // final uri = Uri.parse('wss://app-falling-wind-2135.fly.dev/ws/$userId?token=$token');

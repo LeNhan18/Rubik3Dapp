@@ -32,6 +32,9 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
   
   // Trạng thái edit: cho phép chỉnh sửa màu sau khi scan
   bool _isEditMode = false;
+  
+  // Multi-pass voting: scan nhiều lần và vote (chính xác hơn nhưng chậm hơn)
+  bool _useMultiPass = false;
 
   @override
   void initState() {
@@ -108,8 +111,11 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
       final image = await _cameraController!.takePicture();
       final imageBytes = await File(image.path).readAsBytes();
       
-      // Scan mặt này
-      final scannedFace = CubeScannerService.scanFace(imageBytes);
+      // Scan mặt này với Machine Learning
+      final scannedFace = CubeScannerService.scanFaceML(
+        imageBytes,
+        useMultiPass: _useMultiPass,
+      );
       
       // Kiểm tra xem có scan được đủ màu không (ít nhất 5/9 ô phải có màu)
       int validColors = 0;
@@ -148,9 +154,25 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('✓ Đã scan! Tap vào ô để chỉnh sửa màu nếu cần'),
+            content: Row(
+              children: [
+                Icon(Icons.check_circle, color: Colors.white),
+                SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    '✓ Đã scan! Tap vào ô để chỉnh sửa màu nếu cần',
+                    style: TextStyle(fontSize: 14),
+                  ),
+                ),
+              ],
+            ),
             backgroundColor: Colors.green,
-            duration: Duration(seconds: 3),
+            duration: Duration(seconds: 4),
+            action: SnackBarAction(
+              label: 'OK',
+              textColor: Colors.white,
+              onPressed: () {},
+            ),
           ),
         );
       }
@@ -351,22 +373,49 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
                         child: Container(
                           width: gridSize / 3,
                           height: gridSize / 3,
-                          decoration: _isEditMode && currentColor != null
+                          decoration: _isEditMode
                               ? BoxDecoration(
                                   color: cellColor,
                                   border: Border.all(
                                     color: Colors.yellow,
-                                    width: 2,
+                                    width: currentColor != null ? 3 : 2,
                                   ),
+                                  borderRadius: BorderRadius.circular(4),
                                 )
                               : BoxDecoration(
                                   color: cellColor,
+                                  borderRadius: BorderRadius.circular(2),
                                 ),
-                          child: _isEditMode && currentColor == null
-                              ? Icon(
-                                  Icons.add_circle_outline,
-                                  color: Colors.white70,
-                                  size: 30,
+                          child: _isEditMode
+                              ? Stack(
+                                  children: [
+                                    if (currentColor == null)
+                                      Center(
+                                        child: Icon(
+                                          Icons.add_circle_outline,
+                                          color: Colors.white70,
+                                          size: 30,
+                                        ),
+                                      ),
+                                    // Hiển thị icon edit khi có màu
+                                    if (currentColor != null)
+                                      Positioned(
+                                        top: 4,
+                                        right: 4,
+                                        child: Container(
+                                          padding: EdgeInsets.all(2),
+                                          decoration: BoxDecoration(
+                                            color: Colors.black54,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: Icon(
+                                            Icons.edit,
+                                            color: Colors.yellow,
+                                            size: 12,
+                                          ),
+                                        ),
+                                      ),
+                                  ],
                                 )
                               : null,
                         ),
@@ -673,6 +722,47 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
             ),
           
           SizedBox(height: 10),
+          
+          // Toggle Multi-Pass Voting
+          GestureDetector(
+            onTap: () {
+              setState(() {
+                _useMultiPass = !_useMultiPass;
+              });
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Text(
+                    _useMultiPass 
+                        ? 'Đã bật Multi-Pass Voting (chính xác nhất, chậm hơn)'
+                        : 'Đã tắt Multi-Pass Voting (nhanh hơn)',
+                  ),
+                  backgroundColor: Colors.purple,
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            },
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  _useMultiPass ? Icons.check_circle : Icons.radio_button_unchecked,
+                  color: _useMultiPass ? Colors.purple : Colors.white54,
+                  size: 16,
+                ),
+                SizedBox(width: 4),
+                Text(
+                  'Multi-Pass Voting (ML - chính xác nhất)',
+                  style: TextStyle(
+                    color: _useMultiPass ? Colors.purple : Colors.white70,
+                    fontSize: 11,
+                    fontWeight: _useMultiPass ? FontWeight.bold : FontWeight.normal,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          
+          SizedBox(height: 8),
           
           // Nút toggle overlay
           TextButton(
