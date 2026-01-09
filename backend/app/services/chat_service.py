@@ -33,9 +33,9 @@ class ChatService:
             message_type=MessageType(message_data.message_type)
         )
         
-        self.db.add(message)
-        self.db.commit()
-        self.db.refresh(message)
+        self.db.add(message) #ADD :đưa object vào session
+        self.db.commit() # Lưu vào ĐB
+        self.db.refresh(message) #Lấy lại dữ liệu mới nhất
         
         return message
 

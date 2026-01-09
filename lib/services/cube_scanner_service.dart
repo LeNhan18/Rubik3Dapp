@@ -2,9 +2,10 @@ import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import '../models/rubik_cube.dart';
 import 'ml_color_classifier.dart';
+import 'kmeans_color_classifier.dart';
 
 /// Service để scan và nhận diện màu từ ảnh Rubik's Cube
-/// Sử dụng Machine Learning (KNN + Neural Network) để nhận diện màu
+/// Hỗ trợ nhiều phương pháp: ML, K-Means, hoặc kết hợp
 class CubeScannerService {
   /// Nhận diện màu sử dụng Machine Learning (KNN + Neural Network)
   static CubeColor? detectColor(int r, int g, int b) {
@@ -18,9 +19,11 @@ class CubeScannerService {
 
   /// Scan một mặt 3x3 từ ảnh với Machine Learning
   /// [useMultiPass]: true = scan nhiều lần và vote (chính xác hơn nhưng chậm hơn)
+  /// [useWhiteBalance]: false = tắt auto white balance (khuyến nghị để tránh sai lệch màu)
   static List<List<CubeColor?>> scanFaceML(
     Uint8List imageBytes, {
     bool useMultiPass = false,
+    bool useWhiteBalance = false, // TẮT MẶC ĐỊNH
   }) {
     // Decode ảnh
     final image = img.decodeImage(imageBytes);
@@ -28,8 +31,8 @@ class CubeScannerService {
       throw Exception('Không thể decode ảnh');
     }
 
-    // Áp dụng auto white balance để chuẩn hóa màu
-    final processedImage = _applyAutoWhiteBalance(image);
+    // CHỈ áp dụng auto white balance nếu được yêu cầu (mặc định TẮT)
+    final processedImage = useWhiteBalance ? _applyAutoWhiteBalance(image) : image;
 
     // Multi-pass voting: scan nhiều lần với các vùng hơi khác nhau và vote
     if (useMultiPass) {
@@ -66,6 +69,120 @@ class CubeScannerService {
         );
 
         faceRow.add(detectedColor);
+      }
+      face.add(faceRow);
+    }
+    
+    return face;
+  }
+
+  /// Scan một mặt 3x3 sử dụng K-Means Clustering
+  /// Tự động phát hiện 6 màu chính trong ảnh mà không cần training data
+  static List<List<CubeColor?>> scanFaceKMeans(
+    Uint8List imageBytes, {
+    bool useWhiteBalance = false,
+  }) {
+    // Decode ảnh
+    final image = img.decodeImage(imageBytes);
+    if (image == null) {
+      throw Exception('Không thể decode ảnh');
+    }
+
+    final processedImage = useWhiteBalance ? _applyAutoWhiteBalance(image) : image;
+    final width = processedImage.width;
+    final height = processedImage.height;
+    
+    // Thu thập tất cả màu từ 9 vùng
+    final allColors = <List<int>>[];
+    final cellWidth = width ~/ 3;
+    final cellHeight = height ~/ 3;
+    
+    for (int row = 0; row < 3; row++) {
+      for (int col = 0; col < 3; col++) {
+        final x1 = col * cellWidth;
+        final y1 = row * cellHeight;
+        final x2 = (col + 1) * cellWidth;
+        final y2 = (row + 1) * cellHeight;
+        
+        final dominantColor = _getDominantColor(processedImage, x1, y1, x2, y2);
+        allColors.add(dominantColor);
+      }
+    }
+    
+    // Chạy K-Means để tìm 6 cluster
+    final clusters = KMeansColorClassifier.findClusters(allColors, k: 6);
+    
+    // Map clusters sang màu Rubik
+    final colorMap = KMeansColorClassifier.mapClustersToColors(clusters);
+    
+    // Phân loại mỗi vùng vào cluster gần nhất
+    List<List<CubeColor?>> face = [];
+    for (int row = 0; row < 3; row++) {
+      List<CubeColor?> faceRow = [];
+      for (int col = 0; col < 3; col++) {
+        final x1 = col * cellWidth;
+        final y1 = row * cellHeight;
+        final x2 = (col + 1) * cellWidth;
+        final y2 = (row + 1) * cellHeight;
+        
+        final dominantColor = _getDominantColor(processedImage, x1, y1, x2, y2);
+        final detectedColor = KMeansColorClassifier.classify(
+          dominantColor[0],
+          dominantColor[1],
+          dominantColor[2],
+          clusters,
+          colorMap,
+        );
+        
+        faceRow.add(detectedColor);
+      }
+      face.add(faceRow);
+    }
+    
+    return face;
+  }
+
+  /// Scan kết hợp: Dùng K-Means để tìm 6 màu, sau đó dùng ML để phân loại chính xác hơn
+  static List<List<CubeColor?>> scanFaceHybrid(
+    Uint8List imageBytes, {
+    bool useMultiPass = false,
+    bool useWhiteBalance = false,
+  }) {
+    // Bước 1: Dùng K-Means để tìm 6 màu chính
+    final kmeansResult = scanFaceKMeans(imageBytes, useWhiteBalance: useWhiteBalance);
+    
+    // Bước 2: Dùng ML để refine kết quả
+    final image = img.decodeImage(imageBytes);
+    if (image == null) {
+      throw Exception('Không thể decode ảnh');
+    }
+    
+    final processedImage = useWhiteBalance ? _applyAutoWhiteBalance(image) : image;
+    final width = processedImage.width;
+    final height = processedImage.height;
+    final cellWidth = width ~/ 3;
+    final cellHeight = height ~/ 3;
+    
+    List<List<CubeColor?>> face = [];
+    for (int row = 0; row < 3; row++) {
+      List<CubeColor?> faceRow = [];
+      for (int col = 0; col < 3; col++) {
+        final x1 = col * cellWidth;
+        final y1 = row * cellHeight;
+        final x2 = (col + 1) * cellWidth;
+        final y2 = (row + 1) * cellHeight;
+        
+        final dominantColor = _getDominantColor(processedImage, x1, y1, x2, y2);
+        
+        // Dùng ML để phân loại
+        final mlResult = MLColorClassifier.classify(
+          dominantColor[0],
+          dominantColor[1],
+          dominantColor[2],
+        );
+        
+        // Nếu ML có kết quả, dùng nó; nếu không, dùng K-Means
+        faceRow.add(mlResult ?? kmeansResult[row][col]);
       }
       face.add(faceRow);
     }

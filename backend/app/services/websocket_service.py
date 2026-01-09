@@ -5,7 +5,6 @@ from datetime import datetime
 
 class ConnectionManager:
     """Manages WebSocket connections for real-time communication"""
-    
     def __init__(self):
         # Map user_id -> WebSocket
         self.active_connections: Dict[int, WebSocket] = {}
@@ -68,7 +67,6 @@ class ConnectionManager:
             except Exception as e:
                 print(f"Error sending message to user {user_id}: {e}")
                 self.disconnect(user_id)
-
     async def broadcast_to_match(self, message: dict, match_id: str, exclude_user_id: int = None):
         """Broadcast a message to all users in a match room"""
         if match_id in self.match_rooms:
