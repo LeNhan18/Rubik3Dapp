@@ -82,7 +82,7 @@ class PixelTheme {
       ),
 
       // Card theme
-      cardTheme: const CardTheme(
+      cardTheme: const CardThemeData(
         color: PixelColors.card,
         elevation: 0,
         shape: RoundedRectangleBorder(

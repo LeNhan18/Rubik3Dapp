@@ -5,11 +5,14 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
 import '../models/match.dart';
 import '../models/chat_message.dart';
+import '../config/api_config.dart';
 
 class ApiService {
-  // Local development
-  static const String baseUrl = 'http://192.168.2.26:8000/api';
+  // API base URL from config (sửa IP trong lib/config/api_config.dart)
+  static String get baseUrl => ApiConfig.baseUrl;
   
+  // Desktop/Emulator dùng: http://localhost:8000/api
+  // Previous IP: http://192.168.2.26:8000/api
   // Fly.io production (commented)
   // static const String baseUrl = 'https://app-falling-wind-2135.fly.dev/api';
 

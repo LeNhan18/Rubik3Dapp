@@ -4,6 +4,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import 'package:rubik_master/screens/splash_screen.dart';
+import 'dart:io'; // Thêm import này
+import 'utils/http_overrides.dart'; // Thêm import này
 import 'screens/home_screen.dart';
 import 'screens/timer_screen.dart';
 import 'screens/cube_3d_screen.dart';
@@ -25,6 +27,11 @@ import 'theme/pixel_theme.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 🔓 CHỈ CHO DEVELOPMENT: Cho phép self-signed certificates
+  // Bật dòng này khi backend chạy HTTPS với self-signed cert
+  // ⚠️ TẮT ĐI KHI DEPLOY PRODUCTION!
+  setupHttpOverridesForDevelopment();
   
   print('=== APP STARTING ===');
 
