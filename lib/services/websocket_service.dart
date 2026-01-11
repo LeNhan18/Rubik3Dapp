@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'package:web_socket_channel/web_socket_channel.dart';
+import '../config/api_config.dart';
 import '../models/chat_message.dart';
 
 class WebSocketService {
@@ -23,9 +24,11 @@ class WebSocketService {
     _userId = userId;
     _token = token;
 
-    // Local development
-    final uri = Uri.parse('ws://172.20.10.5:8000/ws/$userId?token=$token');
+    // WebSocket URL from config (sửa IP trong lib/config/api_config.dart)
+    final uri = Uri.parse(ApiConfig.wsUrl(userId, token));
     
+    // Desktop/Emulator dùng: ws://localhost:8000
+    // Previous IP: ws://192.168.2.26:8000
     // Fly.io production (commented)
     // final uri = Uri.parse('wss://app-falling-wind-2135.fly.dev/ws/$userId?token=$token');
 

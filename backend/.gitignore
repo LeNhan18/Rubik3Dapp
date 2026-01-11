@@ -41,3 +41,10 @@ wheels/
 # Logs
 *.log
 
+# SSL Certificates (không commit vào git)
+certs/
+*.pem
+*.crt
+*.key
+.env.https.sample
+

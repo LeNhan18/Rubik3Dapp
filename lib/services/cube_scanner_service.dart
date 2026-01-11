@@ -1,76 +1,20 @@
 import 'dart:typed_data';
 import 'package:image/image.dart' as img;
 import '../models/rubik_cube.dart';
+import 'ml_color_classifier.dart';
+import 'kmeans_color_classifier.dart';
 
 /// Service để scan và nhận diện màu từ ảnh Rubik's Cube
+/// Hỗ trợ nhiều phương pháp: ML, K-Means, hoặc kết hợp
 class CubeScannerService {
-  // Màu chuẩn của Rubik (RGB values) - điều chỉnh cho gần với Rubik thực tế hơn
-  // Dùng nhiều giá trị để cover các điều kiện ánh sáng khác nhau
-  static const Map<CubeColor, List<List<int>>> _standardColors = {
-    CubeColor.white: [
-      [255, 255, 255], [250, 250, 250], [240, 240, 240], [230, 230, 230], // Trắng
-    ],
-    CubeColor.red: [
-      [220, 30, 30], [200, 20, 20], [180, 15, 15], [240, 40, 40], // Đỏ đậm
-    ],
-    CubeColor.blue: [
-      [0, 80, 220], [0, 70, 200], [0, 60, 180], [0, 90, 240], // Xanh dương đậm
-    ],
-    CubeColor.orange: [
-      [255, 130, 0], [255, 110, 0], [240, 100, 0], [255, 150, 20], // Cam
-    ],
-    CubeColor.green: [
-      [0, 170, 0], [0, 150, 0], [0, 130, 0], [0, 190, 20], // Xanh lá đậm
-    ],
-    CubeColor.yellow: [
-      [255, 230, 0], [255, 210, 0], [240, 190, 0], [255, 250, 30], // Vàng
-    ],
-  };
-
-  /// Chuyển RGB sang HSV để nhận diện màu tốt hơn
-  static List<double> _rgbToHsv(int r, int g, int b) {
-    final rNorm = r / 255.0;
-    final gNorm = g / 255.0;
-    final bNorm = b / 255.0;
-    
-    final max = rNorm > gNorm 
-        ? (rNorm > bNorm ? rNorm : bNorm)
-        : (gNorm > bNorm ? gNorm : bNorm);
-    final min = rNorm < gNorm 
-        ? (rNorm < bNorm ? rNorm : bNorm)
-        : (gNorm < bNorm ? gNorm : bNorm);
-    final delta = max - min;
-    
-    double h = 0;
-    if (delta != 0) {
-      if (max == rNorm) {
-        h = 60 * (((gNorm - bNorm) / delta) % 6);
-      } else if (max == gNorm) {
-        h = 60 * (((bNorm - rNorm) / delta) + 2);
-      } else {
-        h = 60 * (((rNorm - gNorm) / delta) + 4);
-      }
-    }
-    if (h < 0) h += 360;
-    
-    final saturation = max == 0 ? 0.0 : delta / max;
-    final value = max;
-    
-    return [h, saturation, value];
+  /// Nhận diện màu sử dụng Machine Learning (KNN + Neural Network)
+  static CubeColor? detectColor(int r, int g, int b) {
+    return MLColorClassifier.classify(r, g, b);
   }
 
-  /// Normalize RGB theo độ sáng để ít bị ảnh hưởng bởi ánh sáng
-  static List<double> _normalizeRgb(int r, int g, int b) {
-    final brightness = (r + g + b) / 3.0;
-    if (brightness == 0) return [0.0, 0.0, 0.0];
-    
-    // Normalize về độ sáng trung bình (128)
-    final factor = 128.0 / brightness;
-    return [
-      (r * factor).clamp(0.0, 255.0),
-      (g * factor).clamp(0.0, 255.0),
-      (b * factor).clamp(0.0, 255.0),
-    ];
+  /// Scan một mặt 3x3 từ ảnh sử dụng Machine Learning
+  static List<List<CubeColor?>> scanFace(Uint8List imageBytes) {
+    return scanFaceML(imageBytes);
   }
 
   /// Nhận diện màu từ RGB values - cải thiện để chính xác hơn
@@ -106,6 +50,9 @@ class CubeScannerService {
       print('  → NULL (xám/đen, không phải màu Rubik)');
       return null;
     }
+
+    final width = processedImage.width;
+    final height = processedImage.height;
     
     // =====================================
     // BƯỚC 2: PHÂN LOẠI THEO HUE (GÓC MÀU)
@@ -139,6 +86,7 @@ class CubeScannerService {
         print('  → CAM (hue vàng nhưng brightness thấp → cam tối)');
         return CubeColor.orange;
       }
+      face.add(faceRow);
     }
     
     // 6. VÀNG-XANH (gap) - Hue từ 68-80°, ưu tiên vàng hoặc xanh lá
@@ -151,6 +99,10 @@ class CubeScannerService {
         return CubeColor.yellow;
       }
     }
+
+    final processedImage = useWhiteBalance ? _applyAutoWhiteBalance(image) : image;
+    final width = processedImage.width;
+    final height = processedImage.height;
     
     // 7. XANH LÁ - Hue từ 80-165°, Saturation cao
     if (h > 80 && h <= 165) {
@@ -289,24 +241,22 @@ class CubeScannerService {
     final width = image.width;
     final height = image.height;
     
-    // Chia ảnh thành 9 vùng (3x3 grid)
+    final processedImage = useWhiteBalance ? _applyAutoWhiteBalance(image) : image;
+    final width = processedImage.width;
+    final height = processedImage.height;
     final cellWidth = width ~/ 3;
     final cellHeight = height ~/ 3;
     
     List<List<CubeColor?>> face = [];
-    
     for (int row = 0; row < 3; row++) {
       List<CubeColor?> faceRow = [];
-      
       for (int col = 0; col < 3; col++) {
-        // Tính vùng của sticker này
         final x1 = col * cellWidth;
         final y1 = row * cellHeight;
         final x2 = (col + 1) * cellWidth;
         final y2 = (row + 1) * cellHeight;
         
-        // Lấy màu trung bình của vùng này (lấy mẫu từ giữa để tránh edge)
-        final avgColor = _getAverageColor(image, x1, y1, x2, y2);
+        final dominantColor = _getDominantColor(processedImage, x1, y1, x2, y2);
         
         // Nhận diện màu
         print('\n=== Ô [$row][$col] ===');
@@ -320,7 +270,82 @@ class CubeScannerService {
           print('❌ Không nhận diện được màu!');
         }
 
-        faceRow.add(detectedColor);
+  /// Multi-pass voting: scan nhiều lần với các offset khác nhau và vote
+  /// Phương pháp này chính xác hơn vì loại bỏ noise và outliers
+  static List<List<CubeColor?>> _scanFaceMultiPass(img.Image image) {
+    final width = image.width;
+    final height = image.height;
+    final cellWidth = width ~/ 3;
+    final cellHeight = height ~/ 3;
+    
+    // Tạo voting matrix: Map<position, Map<color, count>>
+    final votes = <String, Map<CubeColor, int>>{};
+    
+    // Scan 3 lần với các offset khác nhau
+    final offsets = [
+      [0, 0],      // Không offset
+      [-2, -2],    // Offset nhỏ
+      [2, 2],      // Offset ngược lại
+    ];
+    
+    for (var offset in offsets) {
+      final offsetX = offset[0];
+      final offsetY = offset[1];
+      
+      for (int row = 0; row < 3; row++) {
+        for (int col = 0; col < 3; col++) {
+          final key = '$row,$col';
+          
+          // Tính vùng với offset
+          var x1 = col * cellWidth + offsetX;
+          var y1 = row * cellHeight + offsetY;
+          var x2 = (col + 1) * cellWidth + offsetX;
+          var y2 = (row + 1) * cellHeight + offsetY;
+          
+          // Đảm bảo không vượt quá biên
+          x1 = x1.clamp(0, width - 1);
+          y1 = y1.clamp(0, height - 1);
+          x2 = x2.clamp(x1 + 1, width);
+          y2 = y2.clamp(y1 + 1, height);
+          
+          final dominantColor = _getDominantColor(image, x1, y1, x2, y2);
+          final detectedColor = detectColor(
+            dominantColor[0],
+            dominantColor[1],
+            dominantColor[2],
+          );
+          
+          if (detectedColor != null) {
+            votes.putIfAbsent(key, () => <CubeColor, int>{});
+            votes[key]![detectedColor] = (votes[key]![detectedColor] ?? 0) + 1;
+          }
+        }
+      }
+    }
+    
+    // Tạo kết quả từ votes
+    List<List<CubeColor?>> face = [];
+    for (int row = 0; row < 3; row++) {
+      List<CubeColor?> faceRow = [];
+      for (int col = 0; col < 3; col++) {
+        final key = '$row,$col';
+        final cellVotes = votes[key];
+        
+        if (cellVotes == null || cellVotes.isEmpty) {
+          faceRow.add(null);
+        } else {
+          // Lấy màu có nhiều vote nhất
+          CubeColor? winner;
+          int maxVotes = 0;
+          for (var entry in cellVotes.entries) {
+            if (entry.value > maxVotes) {
+              maxVotes = entry.value;
+              winner = entry.key;
+            }
+          }
+          // Chỉ chấp nhận nếu có ít nhất 2/3 votes
+          faceRow.add(maxVotes >= 2 ? winner : null);
+        }
       }
       face.add(faceRow);
     }
@@ -373,15 +398,68 @@ class CubeScannerService {
     }
   }
 
-  /// Lấy màu trung bình của một vùng (lấy mẫu từ giữa để tránh edge và shadow)
-  /// Sử dụng median và lọc màu tối/xám để loại bỏ edge và shadow
-  static List<int> _getAverageColor(
+  /// Áp dụng Auto White Balance để chuẩn hóa màu theo ánh sáng
+  static img.Image _applyAutoWhiteBalance(img.Image image) {
+    // Tính trung bình RGB của toàn bộ ảnh
+    double rSum = 0, gSum = 0, bSum = 0;
+    int pixelCount = 0;
+    
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final pixel = image.getPixel(x, y);
+        final r = (pixel.r is int) ? pixel.r : (pixel.r as num).toInt();
+        final g = (pixel.g is int) ? pixel.g : (pixel.g as num).toInt();
+        final b = (pixel.b is int) ? pixel.b : (pixel.b as num).toInt();
+        
+        rSum += r;
+        gSum += g;
+        bSum += b;
+        pixelCount++;
+      }
+    }
+    
+    if (pixelCount == 0) return image;
+    
+    final avgR = rSum / pixelCount;
+    final avgG = gSum / pixelCount;
+    final avgB = bSum / pixelCount;
+    
+    // Tính hệ số điều chỉnh để cân bằng màu về xám trung tính
+    final avgGray = (avgR + avgG + avgB) / 3.0;
+    final rGain = avgGray / (avgR + 0.001); // Tránh chia 0
+    final gGain = avgGray / (avgG + 0.001);
+    final bGain = avgGray / (avgB + 0.001);
+    
+    // Tạo ảnh mới với white balance đã áp dụng
+    final balanced = img.Image(width: image.width, height: image.height);
+    
+    for (int y = 0; y < image.height; y++) {
+      for (int x = 0; x < image.width; x++) {
+        final pixel = image.getPixel(x, y);
+        final r = (pixel.r is int) ? pixel.r : (pixel.r as num).toInt();
+        final g = (pixel.g is int) ? pixel.g : (pixel.g as num).toInt();
+        final b = (pixel.b is int) ? pixel.b : (pixel.b as num).toInt();
+        
+        final newR = (r * rGain).clamp(0, 255).toInt();
+        final newG = (g * gGain).clamp(0, 255).toInt();
+        final newB = (b * bGain).clamp(0, 255).toInt();
+        
+        balanced.setPixel(x, y, img.ColorRgb8(newR, newG, newB));
+      }
+    }
+    
+    return balanced;
+  }
+
+  /// Lấy màu chủ đạo từ một vùng bằng histogram-based method
+  /// Phương pháp này chính xác hơn: tạo histogram màu và lấy cluster lớn nhất
+  static List<int> _getDominantColor(
     img.Image image, 
     int x1, int y1, int x2, int y2
   ) {
-    // Lấy mẫu từ giữa vùng (70% diện tích) để tránh edge và shadow tốt hơn
-    final marginX = (x2 - x1) ~/ 3;
-    final marginY = (y2 - y1) ~/ 3;
+    // Lấy mẫu từ giữa vùng (80% diện tích) để tránh edge và shadow tốt hơn
+    final marginX = (x2 - x1) ~/ 5;
+    final marginY = (y2 - y1) ~/ 5;
     
     final sampleX1 = x1 + marginX;
     final sampleY1 = y1 + marginY;
@@ -397,13 +475,14 @@ class CubeScannerService {
     final stepX = 2;
     final stepY = 2;
     
+    // Histogram: Map<quantizedColor, [sumR, sumG, sumB, count]>
+    final colorHistogram = <String, List<int>>{};
+    
+    // Thu thập tất cả pixel hợp lệ
     for (int y = sampleY1; y < sampleY2 && y < image.height; y += stepY) {
       for (int x = sampleX1; x < sampleX2 && x < image.width; x += stepX) {
         if (x >= 0 && y >= 0) {
           final pixel = image.getPixel(x, y);
-          
-          // getPixel returns Pixel object, access r, g, b properties directly
-          // Convert to int if they are double
           final rValue = pixel.r;
           final gValue = pixel.g;
           final bValue = pixel.b;
@@ -428,9 +507,17 @@ class CubeScannerService {
             continue; // Bỏ qua màu xám tối
           }
           
-          rValues.add(r);
-          gValues.add(g);
-          bValues.add(b);
+          if (!colorHistogram.containsKey(colorKey)) {
+            colorHistogram[colorKey] = [r, g, b, 1];
+          } else {
+            // Cộng dồn màu và tăng count (weighted average)
+            final bucket = colorHistogram[colorKey]!;
+            final count = bucket[3];
+            bucket[0] = ((bucket[0] * count + r) / (count + 1)).round();
+            bucket[1] = ((bucket[1] * count + g) / (count + 1)).round();
+            bucket[2] = ((bucket[2] * count + b) / (count + 1)).round();
+            bucket[3] = count + 1;
+          }
         }
       }
     }
@@ -440,18 +527,13 @@ class CubeScannerService {
       return [128, 128, 128]; // Màu xám mặc định
     }
     
-    // Sắp xếp và lấy median (giá trị giữa) để loại bỏ outliers
-    rValues.sort();
-    gValues.sort();
-    bValues.sort();
+    // Tìm top bucket có count lớn nhất
+    final sortedBuckets = colorHistogram.entries.toList()
+      ..sort((a, b) => b.value[3].compareTo(a.value[3]));
     
-    final mid = rValues.length ~/ 2;
-
-    final result = [
-      rValues[mid],
-      gValues[mid],
-      bValues[mid],
-    ];
+    // Lấy top bucket (màu xuất hiện nhiều nhất)
+    final topBucket = sortedBuckets[0];
+    final result = [topBucket.value[0], topBucket.value[1], topBucket.value[2]];
     
     // Tính thống kê để debug
     final avgR = rValues.reduce((a, b) => a + b) / rValues.length;
@@ -527,4 +609,3 @@ class CubeScannerService {
     return adjusted;
   }
 }
-
