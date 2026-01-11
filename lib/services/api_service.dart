@@ -8,7 +8,7 @@ import '../models/chat_message.dart';
 
 class ApiService {
   // Local development
-  static const String baseUrl = 'http://172.20.10.5:8000/api';
+  static const String baseUrl = 'http://192.168.1.12:8000/api';
   
   // Fly.io production (commented)
   // static const String baseUrl = 'https://app-falling-wind-2135.fly.dev/api';

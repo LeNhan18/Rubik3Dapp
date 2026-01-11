@@ -2,16 +2,18 @@ from pydantic_settings import BaseSettings
 from typing import Optional
 
 class Settings(BaseSettings):
-    # Database
+    # Database - SQL Server với Windows Authentication
     # Sử dụng environment variables hoặc default values
-    # Trên Fly.io, set các biến này qua: fly secrets set DB_HOST=xxx DB_USER=xxx ...
     DB_HOST: str = "localhost"
-    DB_PORT: int = 3306
-    DB_USER: str = "root"
-    DB_PASSWORD: str = "nhan1811"
+    DB_PORT: int = 1433
     DB_NAME: str = "rubik_master"
+    DB_DRIVER: str = "ODBC Driver 17 for SQL Server"
     
-    # Hoặc sử dụng DATABASE_URL nếu có (cho Fly.io Postgres hoặc external DB)
+    # Chỉ dùng khi không dùng Windows Authentication
+    DB_USER: Optional[str] = None
+    DB_PASSWORD: Optional[str] = None
+    
+    # Hoặc sử dụng DATABASE_URL nếu có (cho Fly.io hoặc external DB)
     DATABASE_URL: Optional[str] = None
     
     # JWT
