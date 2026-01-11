@@ -4,19 +4,19 @@ class ApiConfig {
   // ============================================
   // THAY ĐỔI IP NÀY THÀNH IP MÁY CHẠY BACKEND
   // ============================================
-  static const String SERVER_IP = '10.0.10.121';  // ← SỬA ĐÂY
+  static const String SERVER_IP = '10.16.52.154';  // ← SỬA ĐÂY
   static const String SERVER_PORT = '8000';
   
   // ============================================
   // KHÔNG CẦN SỬA PHẦN DƯỚI
   // ============================================
   
-  // HTTP API Base URL
-  static String get baseUrl => 'http://$SERVER_IP:$SERVER_PORT/api';
+  // HTTPS API Base URL (sử dụng HTTPS cho production)
+  static String get baseUrl => 'https://$SERVER_IP:$SERVER_PORT/api';
   
-  // WebSocket URL
+  // WebSocket URL (wss cho HTTPS)
   static String wsUrl(int userId, String token) => 
-      'ws://$SERVER_IP:$SERVER_PORT/ws/$userId?token=$token';
+      'wss://$SERVER_IP:$SERVER_PORT/ws/$userId?token=$token';
   
   // API Documentation (chạy trên server)
   static String get docsUrl => 'http://$SERVER_IP:$SERVER_PORT/docs';
@@ -24,7 +24,7 @@ class ApiConfig {
   // Quick presets
   static const Map<String, String> presets = {
     'localhost': '127.0.0.1',
-    'samsung': '10.0.10.121',  // IP hiện tại
+    'samsung': '10.120.151.149',  // IP hiện tại
     'production': 'api.yourdomain.com',
   };
   

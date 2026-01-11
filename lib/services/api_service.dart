@@ -6,10 +6,14 @@ import '../models/user.dart';
 import '../models/match.dart';
 import '../models/chat_message.dart';
 import '../config/api_config.dart';
+import '../utils/http_client.dart';
 
 class ApiService {
   // API base URL from config (sửa IP trong lib/config/api_config.dart)
   static String get baseUrl => ApiConfig.baseUrl;
+  
+  // HTTP Client that bypasses SSL for development
+  static http.Client get _httpClient => InsecureHttpClient.getClient();
   
   // Desktop/Emulator dùng: http://localhost:8000/api
   // Previous IP: http://192.168.2.26:8000/api
@@ -59,7 +63,7 @@ class ApiService {
     required String email,
     required String password,
   }) async {
-    final response = await http.post(
+    final response = await _httpClient.post(
       Uri.parse('$baseUrl/auth/register'),
       headers: await _getHeaders(includeAuth: false),
       body: jsonEncode({
@@ -82,7 +86,7 @@ class ApiService {
     required String email,
     required String password,
   }) async {
-    final response = await http.post(
+    final response = await _httpClient.post(
       Uri.parse('$baseUrl/auth/login'),
       headers: await _getHeaders(includeAuth: false),
       body: jsonEncode({
@@ -103,7 +107,7 @@ class ApiService {
   }
 
   Future<User> getCurrentUser() async {
-    final response = await http.get(
+    final response = await _httpClient.get(
       Uri.parse('$baseUrl/users/me'),
       headers: await _getHeaders(),
     );
@@ -118,7 +122,7 @@ class ApiService {
 
   // ========== MATCHES ==========
   Future<Match> createMatch({int? opponentId}) async {
-    final response = await http.post(
+    final response = await _httpClient.post(
       Uri.parse('$baseUrl/matches/create'),
       headers: await _getHeaders(),
       body: jsonEncode({
@@ -136,7 +140,7 @@ class ApiService {
   }
 
   Future<Match> findOpponent() async {
-    final response = await http.post(
+    final response = await _httpClient.post(
       Uri.parse('$baseUrl/matches/find-opponent'),
       headers: await _getHeaders(),
     );
@@ -151,7 +155,7 @@ class ApiService {
   }
 
   Future<Match> getMatch(String matchId) async {
-    final response = await http.get(
+    final response = await _httpClient.get(
       Uri.parse('$baseUrl/matches/$matchId'),
       headers: await _getHeaders(),
     );
@@ -166,7 +170,7 @@ class ApiService {
   }
 
   Future<Match> startMatch(String matchId) async {
-    final response = await http.post(
+    final response = await _httpClient.post(
       Uri.parse('$baseUrl/matches/$matchId/start'),
       headers: await _getHeaders(),
     );
@@ -181,7 +185,7 @@ class ApiService {
   }
 
   Future<Match> submitResult(String matchId, int solveTime) async {
-    final response = await http.post(
+    final response = await _httpClient.post(
       Uri.parse('$baseUrl/matches/$matchId/submit-result'),
       headers: await _getHeaders(),
       body: jsonEncode({
@@ -207,7 +211,7 @@ class ApiService {
     }
 
     final uri = Uri.parse('$baseUrl/matches/').replace(queryParameters: queryParams);
-    final response = await http.get(
+    final response = await _httpClient.get(
       uri,
       headers: await _getHeaders(),
     );
@@ -225,7 +229,7 @@ class ApiService {
     required String matchId,
     required String content,
   }) async {
-    final response = await http.post(
+    final response = await _httpClient.post(
       Uri.parse('$baseUrl/chat/send'),
       headers: await _getHeaders(),
       body: jsonEncode({
@@ -245,7 +249,7 @@ class ApiService {
   }
 
   Future<List<ChatMessage>> getMessages(String matchId, {int limit = 50, int offset = 0}) async {
-    final response = await http.get(
+    final response = await _httpClient.get(
       Uri.parse('$baseUrl/chat/$matchId/messages?limit=$limit&offset=$offset'),
       headers: await _getHeaders(),
     );
@@ -260,7 +264,7 @@ class ApiService {
 
   // ========== FRIENDS ==========
   Future<List<User>> getFriends() async {
-    final response = await http.get(
+    final response = await _httpClient.get(
       Uri.parse('$baseUrl/friends/'),
       headers: await _getHeaders(),
     );
@@ -286,7 +290,7 @@ class ApiService {
   }
 
   Future<List<User>> searchUsers(String query) async {
-    final response = await http.get(
+    final response = await _httpClient.get(
       Uri.parse('$baseUrl/users/search/$query'),
       headers: await _getHeaders(),
     );
@@ -301,7 +305,7 @@ class ApiService {
 
   // Send friend request
   Future<Map<String, dynamic>> sendFriendRequest(int userId) async {
-    final response = await http.post(
+    final response = await _httpClient.post(
       Uri.parse('$baseUrl/friends/request'),
       headers: await _getHeaders(),
       body: jsonEncode({'user2_id': userId}),
@@ -316,7 +320,7 @@ class ApiService {
 
   // Accept friend request
   Future<Map<String, dynamic>> acceptFriendRequest(int friendshipId) async {
-    final response = await http.post(
+    final response = await _httpClient.post(
       Uri.parse('$baseUrl/friends/$friendshipId/accept'),
       headers: await _getHeaders(),
     );
@@ -330,7 +334,7 @@ class ApiService {
 
   // Get pending friend requests
   Future<List<Map<String, dynamic>>> getPendingRequests() async {
-    final response = await http.get(
+    final response = await _httpClient.get(
       Uri.parse('$baseUrl/friends/pending'),
       headers: await _getHeaders(),
     );
@@ -345,7 +349,7 @@ class ApiService {
 
   // ========== LEADERBOARD ==========
   Future<List<User>> getLeaderboard({int limit = 100}) async {
-    final response = await http.get(
+    final response = await _httpClient.get(
       Uri.parse('$baseUrl/users/leaderboard?limit=$limit'),
       headers: await _getHeaders(includeAuth: false), // Public endpoint
     );
@@ -369,7 +373,7 @@ class ApiService {
     if (email != null) body['email'] = email;
     if (avatarUrl != null) body['avatar_url'] = avatarUrl;
 
-    final response = await http.put(
+    final response = await _httpClient.put(
       Uri.parse('$baseUrl/users/me'),
       headers: await _getHeaders(),
       body: jsonEncode(body),
