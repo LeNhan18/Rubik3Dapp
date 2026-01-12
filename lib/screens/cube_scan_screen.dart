@@ -55,7 +55,7 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
 
       _cameraController = CameraController(
         _cameras![0],
-        ResolutionPreset.high,
+        ResolutionPreset.high, // Thay đổi từ high sang medium để tránh méo
         enableAudio: false,
       );
 
@@ -123,17 +123,11 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
           scannedFace = CubeScannerService.scanFaceKMeans(imageBytes);
           break;
         case 'hybrid':
-          scannedFace = CubeScannerService.scanFaceHybrid(
-            imageBytes,
-            useMultiPass: _useMultiPass,
-          );
+          scannedFace = CubeScannerService.scanFaceHybrid(imageBytes);
           break;
         case 'ml':
         default:
-          scannedFace = CubeScannerService.scanFaceML(
-            imageBytes,
-            useMultiPass: _useMultiPass,
-          );
+          scannedFace = CubeScannerService.scanFaceML(imageBytes);
           break;
       }
       
@@ -363,9 +357,16 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
       backgroundColor: Colors.black,
       body: Stack(
         children: [
-          // Camera preview
+          // Camera preview - fill screen while maintaining aspect ratio
           Positioned.fill(
-            child: CameraPreview(_cameraController!),
+            child: FittedBox(
+              fit: BoxFit.cover,
+              child: SizedBox(
+                width: _cameraController!.value.previewSize!.height,
+                height: _cameraController!.value.previewSize!.width,
+                child: CameraPreview(_cameraController!),
+              ),
+            ),
           ),
           
           // Overlay hướng dẫn

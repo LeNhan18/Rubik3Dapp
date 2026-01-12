@@ -4,7 +4,7 @@ class ApiConfig {
   // ============================================
   // THAY ĐỔI IP NÀY THÀNH IP MÁY CHẠY BACKEND
   // ============================================
-  static const String SERVER_IP = '10.16.52.154';  // ← SỬA ĐÂY
+  static const String SERVER_IP = '10.77.58.154';  // ← SỬA ĐÂY
   static const String SERVER_PORT = '8000';
   
   // ============================================
@@ -24,7 +24,7 @@ class ApiConfig {
   // Quick presets
   static const Map<String, String> presets = {
     'localhost': '127.0.0.1',
-    'samsung': '10.120.151.149',  // IP hiện tại
+    'samsung': '10.249.227.52',  // IP hiện tại
     'production': 'api.yourdomain.com',
   };
   
