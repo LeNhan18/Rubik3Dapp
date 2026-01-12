@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import '../models/rubik_cube.dart';
 import '../services/cube_scanner_service.dart';
+import '../utils/cube_validator.dart';
 import '../widgets/pixel_header.dart';
 import '../widgets/pixel_button.dart';
 
@@ -129,9 +130,20 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('Scan không đủ màu ($validColors/9). Vui lòng thử lại với ánh sáng tốt hơn.'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('⚠️ Scan không đủ màu ($validColors/9)'),
+                  SizedBox(height: 4),
+                  Text(
+                    '💡 Mẹo: Đảm bảo ánh sáng đủ, camera vuông góc, Rubik chiếm đầy khung',
+                    style: TextStyle(fontSize: 12),
+                  ),
+                ],
+              ),
               backgroundColor: Colors.orange,
-              duration: Duration(seconds: 3),
+              duration: Duration(seconds: 4),
             ),
           );
         }
@@ -189,18 +201,109 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
   }
 
   void _onScanComplete() {
-    // Chuyển sang màn hình giải với dữ liệu đã scan
-    if (mounted) {
-      // Kiểm tra xem đã scan đủ 6 mặt chưa
-      if (_scannedFaces.length < 6) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Vui lòng scan đủ 6 mặt trước khi giải!'),
-            backgroundColor: Colors.orange,
-            duration: Duration(seconds: 2),
+    // Validate trước khi hoàn thành
+    final validation = CubeValidator.validate(_scannedFaces);
+    
+    if (!validation.isValid) {
+      // Hiển thị lỗi validation
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          backgroundColor: Colors.black87,
+          title: Text(
+            validation.warning ? '⚠️ Cảnh báo' : '❌ Lỗi',
+            style: TextStyle(
+              color: validation.warning ? Colors.orange : Colors.red,
+              fontWeight: FontWeight.bold,
+            ),
           ),
-        );
-        return;
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                validation.error ?? 'Có lỗi xảy ra',
+                style: TextStyle(color: Colors.white),
+              ),
+              SizedBox(height: 16),
+              Text(
+                'Thống kê màu:',
+                style: TextStyle(
+                  color: Colors.white70,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              SizedBox(height: 8),
+              ...CubeValidator.getColorStatistics(_scannedFaces)
+                  .entries
+                  .map((e) => Padding(
+                        padding: EdgeInsets.symmetric(vertical: 2),
+                        child: Row(
+                          children: [
+                            Container(
+                              width: 20,
+                              height: 20,
+                              decoration: BoxDecoration(
+                                color: _getColorFromCubeColor(e.key),
+                                border: Border.all(color: Colors.white30),
+                                borderRadius: BorderRadius.circular(4),
+                              ),
+                            ),
+                            SizedBox(width: 8),
+                            Text(
+                              '${CubeScannerService.getColorName(e.key)}: ${e.value}/9',
+                              style: TextStyle(
+                                color: e.value == 9 ? Colors.green : Colors.red,
+                              ),
+                            ),
+                          ],
+                        ),
+                      )),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(
+                validation.warning ? 'Tiếp tục' : 'Sửa lại',
+                style: TextStyle(color: Colors.white),
+              ),
+            ),
+            if (validation.warning)
+              TextButton(
+                onPressed: () {
+                  Navigator.pop(context);
+                  if (Navigator.of(context).canPop()) {
+                    context.pop(_scannedFaces);
+                  } else {
+                    context.go('/');
+                  }
+                },
+                child: Text(
+                  'Bỏ qua',
+                  style: TextStyle(color: Colors.orange),
+                ),
+              ),
+          ],
+        ),
+      );
+      return;
+    }
+    
+    // Validation thành công - hiển thị thông báo và chuyển màn hình
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('✓ Scan hoàn tất! Rubik hợp lệ'),
+          backgroundColor: Colors.green,
+          duration: Duration(seconds: 2),
+        ),
+      );
+      
+      if (Navigator.of(context).canPop()) {
+        context.pop(_scannedFaces);
+      } else {
+        context.go('/');
       }
       
       // Chuyển sang màn hình giải với scanned data
