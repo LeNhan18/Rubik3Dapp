@@ -1,18 +1,15 @@
 import 'dart:typed_data';
+import 'dart:math' as math;
 import 'package:image/image.dart' as img;
 import '../models/rubik_cube.dart';
 import 'ml_color_classifier.dart';
 import 'kmeans_color_classifier.dart';
 
 /// Service để scan và nhận diện màu từ ảnh Rubik's Cube
-/// Hỗ trợ nhiều phương pháp: ML, K-Means, hoặc kết hợp
+/// Sử dụng phương pháp Hybrid tối ưu: K-Means + ML + Multi-Pass Voting
 class CubeScannerService {
-  /// Nhận diện màu sử dụng Machine Learning (KNN + Neural Network)
-  static CubeColor? detectColor(int r, int g, int b) {
-    return MLColorClassifier.classify(r, g, b);
-  }
-
-  /// Scan một mặt 3x3 từ ảnh sử dụng Machine Learning
+  /// Scan một mặt 3x3 từ ảnh - PHƯƠNG PHÁP CHÍNH XÁC NHẤT
+  /// Kết hợp K-Means (tự động phát hiện màu) + ML (phân loại chính xác) + Multi-Pass Voting
   static List<List<CubeColor?>> scanFace(Uint8List imageBytes) {
     return scanFaceML(imageBytes);
   }
@@ -228,7 +225,7 @@ class CubeScannerService {
 
     // Kiểm tra và điều chỉnh độ sáng ảnh nếu cần
     final avgBrightness = _calculateAverageBrightness(image);
-    print('📊 Độ sáng ảnh trung bình: ${avgBrightness.toStringAsFixed(1)}');
+    print(' Độ sáng ảnh trung bình: ${avgBrightness.toStringAsFixed(1)}');
     
     if (avgBrightness < 80) {
       print('⚡ Ảnh quá tối, tăng độ sáng...');
@@ -270,67 +267,79 @@ class CubeScannerService {
           print('❌ Không nhận diện được màu!');
         }
 
-  /// Multi-pass voting: scan nhiều lần với các offset khác nhau và vote
-  /// Phương pháp này chính xác hơn vì loại bỏ noise và outliers
-  static List<List<CubeColor?>> _scanFaceMultiPass(img.Image image) {
-    final width = image.width;
-    final height = image.height;
-    final cellWidth = width ~/ 3;
-    final cellHeight = height ~/ 3;
-    
-    // Tạo voting matrix: Map<position, Map<color, count>>
+    // BƯỚC 2: Chạy K-Means để tìm 6 cluster màu chính
+    final clusters = KMeansColorClassifier.findClusters(allColors, k: 6);
+
+    // BƯỚC 3: Map clusters sang màu Rubik (dùng LAB color space)
+    final colorMap = KMeansColorClassifier.mapClustersToColors(clusters);
+
+    // BƯỚC 4: Multi-Pass Voting - scan nhiều lần với offset khác nhau
     final votes = <String, Map<CubeColor, int>>{};
-    
-    // Scan 3 lần với các offset khác nhau
     final offsets = [
       [0, 0],      // Không offset
-      [-2, -2],    // Offset nhỏ
-      [2, 2],      // Offset ngược lại
+      [-3, -3],    // Offset nhỏ
+      [3, 3],      // Offset ngược lại
+      [-2, 2],     // Offset chéo
+      [2, -2],     // Offset chéo ngược
     ];
-    
+
     for (var offset in offsets) {
       final offsetX = offset[0];
       final offsetY = offset[1];
-      
+
       for (int row = 0; row < 3; row++) {
         for (int col = 0; col < 3; col++) {
           final key = '$row,$col';
-          
+
           // Tính vùng với offset
           var x1 = col * cellWidth + offsetX;
           var y1 = row * cellHeight + offsetY;
           var x2 = (col + 1) * cellWidth + offsetX;
           var y2 = (row + 1) * cellHeight + offsetY;
-          
+
           // Đảm bảo không vượt quá biên
           x1 = x1.clamp(0, width - 1);
           y1 = y1.clamp(0, height - 1);
           x2 = x2.clamp(x1 + 1, width);
           y2 = y2.clamp(y1 + 1, height);
-          
-          final dominantColor = _getDominantColor(image, x1, y1, x2, y2);
-          final detectedColor = detectColor(
+
+          final dominantColor = _getDominantColor(processedImage, x1, y1, x2, y2);
+
+          // Dùng K-Means để phân loại (chính xác hơn với LAB)
+          final kmeansResult = KMeansColorClassifier.classify(
+            dominantColor[0],
+            dominantColor[1],
+            dominantColor[2],
+            clusters,
+            colorMap,
+          );
+
+          // Dùng ML để refine (nếu có kết quả)
+          final mlResult = MLColorClassifier.classify(
             dominantColor[0],
             dominantColor[1],
             dominantColor[2],
           );
-          
-          if (detectedColor != null) {
+
+          // Vote: Ưu tiên ML nếu có, nếu không dùng K-Means
+          final finalColor = mlResult ?? kmeansResult;
+
+          if (finalColor != null) {
             votes.putIfAbsent(key, () => <CubeColor, int>{});
-            votes[key]![detectedColor] = (votes[key]![detectedColor] ?? 0) + 1;
+            votes[key]![finalColor] = (votes[key]![finalColor] ?? 0) + 1;
           }
         }
       }
     }
-    
-    // Tạo kết quả từ votes
+
+    // BƯỚC 5: Tạo kết quả từ votes (lấy màu có nhiều vote nhất)
     List<List<CubeColor?>> face = [];
     for (int row = 0; row < 3; row++) {
       List<CubeColor?> faceRow = [];
       for (int col = 0; col < 3; col++) {
         final key = '$row,$col';
         final cellVotes = votes[key];
-        
+
         if (cellVotes == null || cellVotes.isEmpty) {
           faceRow.add(null);
         } else {
@@ -343,8 +352,8 @@ class CubeScannerService {
               winner = entry.key;
             }
           }
-          // Chỉ chấp nhận nếu có ít nhất 2/3 votes
-          faceRow.add(maxVotes >= 2 ? winner : null);
+          // Chỉ chấp nhận nếu có ít nhất 3/5 votes (60% confidence)
+          faceRow.add(maxVotes >= 3 ? winner : null);
         }
       }
       face.add(faceRow);
@@ -398,63 +407,64 @@ class CubeScannerService {
     }
   }
 
+
   /// Áp dụng Auto White Balance để chuẩn hóa màu theo ánh sáng
   static img.Image _applyAutoWhiteBalance(img.Image image) {
     // Tính trung bình RGB của toàn bộ ảnh
     double rSum = 0, gSum = 0, bSum = 0;
     int pixelCount = 0;
-    
+
     for (int y = 0; y < image.height; y++) {
       for (int x = 0; x < image.width; x++) {
         final pixel = image.getPixel(x, y);
         final r = (pixel.r is int) ? pixel.r : (pixel.r as num).toInt();
         final g = (pixel.g is int) ? pixel.g : (pixel.g as num).toInt();
         final b = (pixel.b is int) ? pixel.b : (pixel.b as num).toInt();
-        
+
         rSum += r;
         gSum += g;
         bSum += b;
         pixelCount++;
       }
     }
-    
+
     if (pixelCount == 0) return image;
-    
+
     final avgR = rSum / pixelCount;
     final avgG = gSum / pixelCount;
     final avgB = bSum / pixelCount;
-    
+
     // Tính hệ số điều chỉnh để cân bằng màu về xám trung tính
     final avgGray = (avgR + avgG + avgB) / 3.0;
     final rGain = avgGray / (avgR + 0.001); // Tránh chia 0
     final gGain = avgGray / (avgG + 0.001);
     final bGain = avgGray / (avgB + 0.001);
-    
+
     // Tạo ảnh mới với white balance đã áp dụng
     final balanced = img.Image(width: image.width, height: image.height);
-    
+
     for (int y = 0; y < image.height; y++) {
       for (int x = 0; x < image.width; x++) {
         final pixel = image.getPixel(x, y);
         final r = (pixel.r is int) ? pixel.r : (pixel.r as num).toInt();
         final g = (pixel.g is int) ? pixel.g : (pixel.g as num).toInt();
         final b = (pixel.b is int) ? pixel.b : (pixel.b as num).toInt();
-        
+
         final newR = (r * rGain).clamp(0, 255).toInt();
         final newG = (g * gGain).clamp(0, 255).toInt();
         final newB = (b * bGain).clamp(0, 255).toInt();
-        
+
         balanced.setPixel(x, y, img.ColorRgb8(newR, newG, newB));
       }
     }
-    
+
     return balanced;
   }
 
-  /// Lấy màu chủ đạo từ một vùng bằng histogram-based method
-  /// Phương pháp này chính xác hơn: tạo histogram màu và lấy cluster lớn nhất
+  /// Lấy màu chủ đạo từ một vùng - CẢI THIỆN: Lấy từ center region nhỏ hơn
+  /// Sử dụng median thay vì histogram để tránh nhiễu
   static List<int> _getDominantColor(
-    img.Image image, 
+    img.Image image,
     int x1, int y1, int x2, int y2
   ) {
     // Lấy mẫu từ giữa vùng (80% diện tích) để tránh edge và shadow tốt hơn
@@ -486,7 +496,7 @@ class CubeScannerService {
           final rValue = pixel.r;
           final gValue = pixel.g;
           final bValue = pixel.b;
-          
+
           final r = (rValue is int) ? rValue : (rValue as num).toInt();
           final g = (gValue is int) ? gValue : (gValue as num).toInt();
           final b = (bValue is int) ? bValue : (bValue as num).toInt();

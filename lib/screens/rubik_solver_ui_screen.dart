@@ -8,7 +8,9 @@ import '../widgets/cube_net_view.dart';
 import '../widgets/rubik_control_button.dart';
 
 class RubikSolverUIScreen extends StatefulWidget {
-  const RubikSolverUIScreen({super.key});
+  final Map<String, List<List<CubeColor?>>>? scannedFaces;
+  
+  const RubikSolverUIScreen({super.key, this.scannedFaces});
 
   @override
   State<RubikSolverUIScreen> createState() => _RubikSolverUIScreenState();
@@ -52,6 +54,38 @@ class _RubikSolverUIScreenState extends State<RubikSolverUIScreen>
   @override
   void initState() {
     super.initState();
+    
+    // Nếu có scanned data, khởi tạo cube state từ đó
+    if (widget.scannedFaces != null && widget.scannedFaces!.isNotEmpty) {
+      _cubeState = Map<String, List<List<CubeColor?>>>.from(widget.scannedFaces!);
+      
+      // Đảm bảo tất cả 6 faces đều có
+      final requiredFaces = ['up', 'down', 'front', 'back', 'left', 'right'];
+      for (final face in requiredFaces) {
+        if (!_cubeState.containsKey(face)) {
+          _cubeState[face] = List.generate(
+            3, (_) => List.filled(3, null, growable: false).toList()
+          );
+        }
+      }
+      
+      // Map colors vào RubikCube model
+      _cube = RubikCube();
+      _mapColorsToRubikCube(_cube, _cubeState);
+      
+      // Hiển thị thông báo thành công
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('✓ Đã tải dữ liệu scan thành công! Bạn có thể giải cube ngay.'),
+              backgroundColor: Colors.green,
+              duration: Duration(seconds: 2),
+            ),
+          );
+        }
+      });
+    }
     _pageController = PageController();
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 600),
