@@ -118,7 +118,14 @@ class RubikMasterApp extends ConsumerWidget {
       ),
       GoRoute(
         path: '/solver-ui',
-        builder: (context, state) => const RubikSolverUIScreen(),
+        builder: (context, state) {
+          // Nhận scanned data từ scan screen
+          final scannedFaces = state.extra;
+          if (scannedFaces is Map<String, List<List<CubeColor?>>>) {
+            return RubikSolverUIScreen(scannedFaces: scannedFaces);
+          }
+          return const RubikSolverUIScreen();
+        },
       ),
       GoRoute(
         path: '/cube3d-solver',

@@ -33,11 +33,6 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
   // Trạng thái edit: cho phép chỉnh sửa màu sau khi scan
   bool _isEditMode = false;
   
-  // Multi-pass voting: scan nhiều lần và vote (chính xác hơn nhưng chậm hơn)
-  bool _useMultiPass = false;
-  
-  // Phương pháp scan: 'ml', 'kmeans', 'hybrid'
-  String _scanMethod = 'hybrid'; // Mặc định dùng hybrid (tốt nhất)
 
   @override
   void initState() {
@@ -114,27 +109,8 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
       final image = await _cameraController!.takePicture();
       final imageBytes = await File(image.path).readAsBytes();
       
-      // Scan mặt này với phương pháp đã chọn
-      List<List<CubeColor?>> scannedFace;
-      
-      switch (_scanMethod) {
-        case 'kmeans':
-          scannedFace = CubeScannerService.scanFaceKMeans(imageBytes);
-          break;
-        case 'hybrid':
-          scannedFace = CubeScannerService.scanFaceHybrid(
-            imageBytes,
-            useMultiPass: _useMultiPass,
-          );
-          break;
-        case 'ml':
-        default:
-          scannedFace = CubeScannerService.scanFaceML(
-            imageBytes,
-            useMultiPass: _useMultiPass,
-          );
-          break;
-      }
+      // Scan mặt này với phương pháp tối ưu (Hybrid: K-Means + ML + Multi-Pass)
+      final scannedFace = CubeScannerService.scanFace(imageBytes);
       
       // Kiểm tra xem có scan được đủ màu không (ít nhất 5/9 ô phải có màu)
       int validColors = 0;
@@ -213,14 +189,22 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
   }
 
   void _onScanComplete() {
-    // Chuyển kết quả về màn hình trước đó
+    // Chuyển sang màn hình giải với dữ liệu đã scan
     if (mounted) {
-      if (Navigator.of(context).canPop()) {
-        context.pop(_scannedFaces);
-      } else {
-        // Nếu không có route để pop, về home
-        context.go('/');
+      // Kiểm tra xem đã scan đủ 6 mặt chưa
+      if (_scannedFaces.length < 6) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Vui lòng scan đủ 6 mặt trước khi giải!'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 2),
+          ),
+        );
+        return;
       }
+      
+      // Chuyển sang màn hình giải với scanned data
+      context.go('/solver-ui', extra: _scannedFaces);
     }
   }
 
@@ -650,55 +634,6 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
     );
   }
 
-  Widget _buildMethodButton(String label, String method, IconData icon) {
-    final isSelected = _scanMethod == method;
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _scanMethod = method;
-        });
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              method == 'ml' 
-                  ? 'Đã chọn: Machine Learning (nhanh)'
-                  : method == 'kmeans'
-                      ? 'Đã chọn: K-Means (tự động phát hiện màu)'
-                      : 'Đã chọn: Hybrid (K-Means + ML - khuyến nghị)',
-            ),
-            backgroundColor: Colors.blue,
-            duration: Duration(seconds: 2),
-          ),
-        );
-      },
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: isSelected ? Colors.blue : Colors.grey[800],
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(
-            color: isSelected ? Colors.yellow : Colors.transparent,
-            width: 2,
-          ),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon, color: Colors.white, size: 16),
-            SizedBox(width: 4),
-            Text(
-              label,
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 11,
-                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
 
   Widget _buildControls() {
     return Container(
@@ -791,62 +726,6 @@ class _CubeScanScreenState extends State<CubeScanScreen> {
             ),
           
           SizedBox(height: 10),
-          
-          // Chọn phương pháp scan
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              _buildMethodButton('ML', 'ml', Icons.psychology),
-              SizedBox(width: 8),
-              _buildMethodButton('K-Means', 'kmeans', Icons.auto_awesome),
-              SizedBox(width: 8),
-              _buildMethodButton('Hybrid', 'hybrid', Icons.workspace_premium),
-            ],
-          ),
-          
-          SizedBox(height: 8),
-          
-          // Toggle Multi-Pass Voting (chỉ khi dùng ML hoặc Hybrid)
-          if (_scanMethod == 'ml' || _scanMethod == 'hybrid')
-            GestureDetector(
-              onTap: () {
-                setState(() {
-                  _useMultiPass = !_useMultiPass;
-                });
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text(
-                      _useMultiPass 
-                          ? 'Đã bật Multi-Pass Voting (chính xác hơn, chậm hơn)'
-                          : 'Đã tắt Multi-Pass Voting (nhanh hơn)',
-                    ),
-                    backgroundColor: Colors.purple,
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              },
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    _useMultiPass ? Icons.check_circle : Icons.radio_button_unchecked,
-                    color: _useMultiPass ? Colors.purple : Colors.white54,
-                    size: 16,
-                  ),
-                  SizedBox(width: 4),
-                  Text(
-                    'Multi-Pass Voting',
-                    style: TextStyle(
-                      color: _useMultiPass ? Colors.purple : Colors.white70,
-                      fontSize: 11,
-                      fontWeight: _useMultiPass ? FontWeight.bold : FontWeight.normal,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          
-          SizedBox(height: 8),
           
           // Nút toggle overlay
           TextButton(
