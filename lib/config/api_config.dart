@@ -4,7 +4,7 @@ class ApiConfig {
   // ============================================
   // THAY ĐỔI IP NÀY THÀNH IP MÁY CHẠY BACKEND
   // ============================================
-  static const String SERVER_IP = '10.16.52.154';  // ← SỬA ĐÂY
+  static const String SERVER_IP = '172.20.10.5';  // ← SỬA ĐÂY
   static const String SERVER_PORT = '8000';
   
   // ============================================

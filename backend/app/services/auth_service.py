@@ -41,11 +41,30 @@ class AuthService:
         """Login user and return access token"""
         user = self.db.query(User).filter(User.email == login_data.email).first()
         
-        if not user or not verify_password(login_data.password, user.password_hash):
+        if not user:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Incorrect email or password"
             )
+        
+        # Kiểm tra password_hash có tồn tại không
+        if not user.password_hash:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password"
+            )
+        
+        # Verify password
+        if not verify_password(login_data.password, user.password_hash):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Incorrect email or password"
+            )
+        
+        # Nếu password là plain text (backward compatibility), hash lại
+        if user.password_hash == login_data.password:
+            user.password_hash = get_password_hash(login_data.password)
+            self.db.commit()
         
         # Update online status
         user.is_online = True

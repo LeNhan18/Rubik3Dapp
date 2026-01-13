@@ -5,7 +5,7 @@ import 'color_utils.dart';
 /// K-Means Clustering Color Classifier - Phiên bản cải tiến
 class KMeansColorClassifier {
   /// Chạy K-Means++ clustering để tìm 6 màu chính
-  /// K-Means++ cho kết quả ổn định hơn random initialization
+  /// Chạy nhiều lần và chọn kết quả tốt nhất (tối ưu hơn)
   static List<List<int>> findClusters(List<List<int>> colors, {int k = 6}) {
     if (colors.isEmpty) return [];
     if (colors.length < k) {
@@ -19,18 +19,41 @@ class KMeansColorClassifier {
       return findClusters(colors, k: k); // Fallback nếu lọc quá mạnh
     }
 
+    // Chạy K-Means nhiều lần và chọn kết quả tốt nhất
+    List<List<int>>? bestClusters;
+    double bestScore = -1;
+    
+    for (int attempt = 0; attempt < 3; attempt++) {
+      try {
+        final clusters = _runKMeans(filtered, k);
+        final score = _scoreClusters(clusters, filtered);
+        
+        if (score > bestScore) {
+          bestScore = score;
+          bestClusters = clusters;
+        }
+      } catch (e) {
+        continue;
+      }
+    }
+
+    return bestClusters ?? _runKMeans(filtered, k);
+  }
+
+  /// Chạy một lần K-Means
+  static List<List<int>> _runKMeans(List<List<int>> colors, int k) {
     // K-Means++ initialization (tốt hơn random)
-    List<List<double>> centroids = _initializeKMeansPlusPlus(filtered, k);
+    List<List<double>> centroids = _initializeKMeansPlusPlus(colors, k);
 
     // Iterate để tìm optimal centroids
     int iterations = 0;
-    const maxIterations = 100; // Tăng số iterations
+    const maxIterations = 50; // Giảm xuống 50 để nhanh hơn
 
     while (iterations < maxIterations) {
       // Assign mỗi màu vào cluster gần nhất (dùng LAB space)
       final clusters = List.generate(k, (_) => <List<int>>[]);
 
-      for (var color in filtered) {
+      for (var color in colors) {
         int nearestCluster = 0;
         double minDistance = double.infinity;
 
@@ -68,7 +91,7 @@ class KMeansColorClassifier {
       // Kiểm tra convergence
       bool converged = true;
       for (int i = 0; i < k; i++) {
-        if (_euclideanDistance(centroids[i], oldCentroids[i]) > 0.5) {
+        if (_euclideanDistance(centroids[i], oldCentroids[i]) > 1.0) {
           converged = false;
           break;
         }
@@ -82,12 +105,32 @@ class KMeansColorClassifier {
     return centroids.map((c) => [c[0].round(), c[1].round(), c[2].round()]).toList();
   }
 
+  /// Score clusters dựa trên độ phân tán (clusters càng xa nhau càng tốt)
+  static double _scoreClusters(List<List<int>> clusters, List<List<int>> colors) {
+    if (clusters.length < 2) return 0;
+    
+    // Tính khoảng cách trung bình giữa các clusters
+    double totalDistance = 0;
+    int pairCount = 0;
+    
+    for (int i = 0; i < clusters.length; i++) {
+      for (int j = i + 1; j < clusters.length; j++) {
+        final lab1 = ColorUtils.rgbToLab(clusters[i][0], clusters[i][1], clusters[i][2]);
+        final lab2 = ColorUtils.rgbToLab(clusters[j][0], clusters[j][1], clusters[j][2]);
+        totalDistance += ColorUtils.labDistance(lab1, lab2);
+        pairCount++;
+      }
+    }
+    
+    return pairCount > 0 ? totalDistance / pairCount : 0;
+  }
+
   /// K-Means++ initialization - ổn định hơn random
   static List<List<double>> _initializeKMeansPlusPlus(
       List<List<int>> colors,
       int k,
       ) {
-    final random = math.Random(42); // Seed cố định cho reproducibility
+    final random = math.Random(); // Không dùng seed cố định để đa dạng hơn
     final centroids = <List<double>>[];
 
     // Chọn centroid đầu tiên ngẫu nhiên
@@ -98,31 +141,40 @@ class KMeansColorClassifier {
       firstColor[2].toDouble(),
     ]);
 
-    // Chọn các centroid tiếp theo xa nhất với các centroid hiện tại
+    // Chọn các centroid tiếp theo xa nhất với các centroid hiện tại (dùng LAB space)
     for (int i = 1; i < k; i++) {
       final distances = <double>[];
 
       for (var color in colors) {
         double minDist = double.infinity;
-        final colorVec = [
-          color[0].toDouble(),
-          color[1].toDouble(),
-          color[2].toDouble()
-        ];
+        final colorLab = ColorUtils.rgbToLab(color[0], color[1], color[2]);
 
         for (var centroid in centroids) {
-          final dist = _euclideanDistance(colorVec, centroid);
+          final centroidLab = ColorUtils.rgbToLab(
+            centroid[0].round(),
+            centroid[1].round(),
+            centroid[2].round(),
+          );
+          final dist = ColorUtils.labDistance(colorLab, centroidLab);
           if (dist < minDist) minDist = dist;
         }
         distances.add(minDist);
       }
 
-      // Chọn màu có khoảng cách lớn nhất
-      final maxDistIndex = distances.indexOf(distances.reduce(math.max));
+      // Chọn màu có khoảng cách lớn nhất (weighted random để tránh outliers)
+      final maxDist = distances.reduce(math.max);
+      final candidates = <int>[];
+      for (int j = 0; j < distances.length; j++) {
+        if (distances[j] >= maxDist * 0.8) {
+          candidates.add(j);
+        }
+      }
+      
+      final selectedIndex = candidates[random.nextInt(candidates.length)];
       centroids.add([
-        colors[maxDistIndex][0].toDouble(),
-        colors[maxDistIndex][1].toDouble(),
-        colors[maxDistIndex][2].toDouble(),
+        colors[selectedIndex][0].toDouble(),
+        colors[selectedIndex][1].toDouble(),
+        colors[selectedIndex][2].toDouble(),
       ]);
     }
 
@@ -130,23 +182,37 @@ class KMeansColorClassifier {
   }
 
   /// Lọc outliers (pixel quá sáng, quá tối, hoặc quá xa median)
+  /// Cải thiện: lọc tốt hơn để giữ lại màu sắc đa dạng
   static List<List<int>> _filterOutliers(List<List<int>> colors) {
     if (colors.length < 10) return colors;
 
-    // Tính brightness trung bình
-    final brightnesses = colors.map((c) =>
-    (c[0] + c[1] + c[2]) / 3
-    ).toList();
+    // Tính brightness và saturation
+    final stats = colors.map((c) {
+      final r = c[0];
+      final g = c[1];
+      final b = c[2];
+      final brightness = (r + g + b) / 3.0;
+      final maxColor = math.max(math.max(r, g), b);
+      final minColor = math.min(math.min(r, g), b);
+      final saturation = maxColor == 0 ? 0.0 : (maxColor - minColor) / maxColor;
+      return {'brightness': brightness, 'saturation': saturation, 'color': c};
+    }).toList();
 
-    brightnesses.sort();
+    // Tính median brightness
+    final brightnesses = stats.map((s) => s['brightness'] as double).toList()..sort();
     final medianBrightness = brightnesses[brightnesses.length ~/ 2];
 
-    // Lọc pixel có brightness quá xa median (>40%)
-    return colors.where((color) {
-      final brightness = (color[0] + color[1] + color[2]) / 3;
+    // Lọc: giữ lại màu có brightness hợp lý VÀ có saturation (không phải xám)
+    return stats.where((stat) {
+      final brightness = stat['brightness'] as double;
+      final saturation = stat['saturation'] as double;
       final diff = (brightness - medianBrightness).abs();
-      return diff < medianBrightness * 0.4;
-    }).toList();
+      
+      // Giữ lại nếu:
+      // 1. Brightness không quá xa median (50% thay vì 40%)
+      // 2. Hoặc có saturation cao (là màu thật, không phải xám)
+      return diff < medianBrightness * 0.5 || saturation > 0.15;
+    }).map((stat) => stat['color'] as List<int>).toList();
   }
 
   /// Dùng median thay vì mean để chống outliers
@@ -163,6 +229,7 @@ class KMeansColorClassifier {
   }
 
   /// Phân loại một màu vào một trong 6 cluster
+  /// Trả về null nếu distance quá xa (không chắc chắn)
   static CubeColor? classify(
       int r,
       int g,
@@ -176,6 +243,7 @@ class KMeansColorClassifier {
 
     int nearestCluster = 0;
     double minDistance = double.infinity;
+    double secondMinDistance = double.infinity;
 
     for (int i = 0; i < clusters.length; i++) {
       final clusterLab = ColorUtils.rgbToLab(
@@ -185,9 +253,22 @@ class KMeansColorClassifier {
       );
       final distance = ColorUtils.labDistance(colorLab, clusterLab);
       if (distance < minDistance) {
+        secondMinDistance = minDistance;
         minDistance = distance;
         nearestCluster = i;
+      } else if (distance < secondMinDistance) {
+        secondMinDistance = distance;
       }
+    }
+
+    // Chỉ chấp nhận nếu min distance rõ ràng hơn second (ít nhất 30% chênh lệch)
+    if (secondMinDistance > 0 && minDistance / secondMinDistance > 0.7) {
+      return null; // Không chắc chắn
+    }
+
+    // Chỉ chấp nhận nếu distance không quá xa (threshold = 50 Delta E)
+    if (minDistance > 50) {
+      return null;
     }
 
     return colorMap[nearestCluster];
@@ -200,16 +281,29 @@ class KMeansColorClassifier {
     }
 
     // Màu chuẩn của Rubik (RGB) - điều chỉnh cho phù hợp với ánh sáng thực tế
+    // Sử dụng nhiều biến thể cho mỗi màu để tăng độ chính xác
     final standardColors = {
-      CubeColor.white: [240, 240, 240],    // Trắng có thể hơi xám
-      CubeColor.yellow: [255, 220, 0],     // Vàng
-      CubeColor.red: [200, 30, 30],        // Đỏ
-      CubeColor.orange: [255, 120, 0],     // Cam
-      CubeColor.blue: [0, 70, 200],        // Xanh dương
-      CubeColor.green: [0, 155, 0],        // Xanh lá
+      CubeColor.white: [
+        [240, 240, 240], [250, 250, 250], [230, 230, 230], [245, 245, 245],
+      ],
+      CubeColor.yellow: [
+        [255, 220, 0], [255, 210, 0], [255, 230, 10], [250, 215, 5],
+      ],
+      CubeColor.red: [
+        [200, 30, 30], [220, 25, 25], [180, 20, 20], [210, 28, 28],
+      ],
+      CubeColor.orange: [
+        [255, 120, 0], [255, 110, 0], [255, 130, 5], [250, 115, 2],
+      ],
+      CubeColor.blue: [
+        [0, 70, 200], [0, 75, 210], [0, 65, 190], [5, 72, 205],
+      ],
+      CubeColor.green: [
+        [0, 155, 0], [0, 160, 5], [0, 150, 2], [3, 157, 3],
+      ],
     };
 
-    // Tính score cho mỗi cặp (cluster, color) - ưu tiên màu tương phản
+    // Tính score cho mỗi cặp (cluster, color) - dùng min distance từ tất cả biến thể
     final scores = <Map<String, dynamic>>[];
 
     for (int i = 0; i < clusters.length; i++) {
@@ -220,17 +314,20 @@ class KMeansColorClassifier {
       );
 
       for (var entry in standardColors.entries) {
-        final standardLab = ColorUtils.rgbToLab(
-          entry.value[0],
-          entry.value[1],
-          entry.value[2],
-        );
-        final distance = ColorUtils.labDistance(clusterLab, standardLab);
+        // Tính min distance từ cluster đến tất cả biến thể của màu này
+        double minDistance = double.infinity;
+        for (var variant in entry.value) {
+          final variantLab = ColorUtils.rgbToLab(variant[0], variant[1], variant[2]);
+          final distance = ColorUtils.labDistance(clusterLab, variantLab);
+          if (distance < minDistance) {
+            minDistance = distance;
+          }
+        }
 
         scores.add({
           'cluster': i,
           'color': entry.key,
-          'distance': distance,
+          'distance': minDistance,
         });
       }
     }

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas.friendship import FriendshipCreate, FriendshipResponse
@@ -109,4 +109,88 @@ async def get_pending_requests(
         })
     
     return result
+
+
+@router.post("/{friendship_id}/reject", response_model=FriendshipResponse)
+async def reject_friend_request(
+    friendship_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Reject a friend request"""
+    from app.models.friendship import Friendship, FriendshipStatus
+    
+    friendship = db.query(Friendship).filter(Friendship.id == friendship_id).first()
+    if not friendship:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Friend request not found"
+        )
+    
+    # Check if user is the recipient
+    if friendship.user2_id != current_user["id"]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You can only reject requests sent to you"
+        )
+    
+    # Check if request is pending
+    if friendship.status != FriendshipStatus.pending:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Friend request is not pending"
+        )
+    
+    # Delete the friendship (reject = delete)
+    db.delete(friendship)
+    db.commit()
+    
+    # Get usernames for response
+    user1 = db.query(User).filter(User.id == friendship.user1_id).first()
+    user2 = db.query(User).filter(User.id == friendship.user2_id).first()
+    
+    return {
+        "id": friendship_id,
+        "user1_id": friendship.user1_id,
+        "user2_id": friendship.user2_id,
+        "status": "rejected",
+        "created_at": friendship.created_at,
+        "user1_username": user1.username,
+        "user2_username": user2.username
+    }
+
+
+@router.delete("/{friendship_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def unfriend(
+    friendship_id: int,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Unfriend (delete friendship)"""
+    from app.models.friendship import Friendship, FriendshipStatus
+    
+    friendship = db.query(Friendship).filter(Friendship.id == friendship_id).first()
+    if not friendship:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Friendship not found"
+        )
+    
+    # Check if user is part of this friendship
+    if current_user["id"] not in [friendship.user1_id, friendship.user2_id]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You don't have permission to delete this friendship"
+        )
+    
+    # Check if they are actually friends
+    if friendship.status != FriendshipStatus.accepted:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Friendship is not accepted"
+        )
+    
+    db.delete(friendship)
+    db.commit()
+    return None
 

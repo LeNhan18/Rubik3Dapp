@@ -465,5 +465,53 @@ class ApiService {
     }
     return '$baseUrl/avatars/$avatarPath';
   }
+
+  // ========== SOLVE RUBIK CUBE ==========
+  /// Giải Rubik's Cube sử dụng Backend API (Kociemba algorithm)
+  /// 
+  /// [cubeState]: Cube state dạng Kociemba format (54 characters)
+  /// Returns: List of moves (e.g., ["R", "U", "R'", "U'"])
+  /// 
+  /// Throws Exception nếu API call fail
+  Future<List<String>> solveCube(String cubeState) async {
+    try {
+      // Sử dụng HTTP client không cần auth (public endpoint)
+      // Dùng HTTP thay vì HTTPS cho development
+      final serverUrl = baseUrl.replaceAll('https://', 'http://').replaceAll('/api', '');
+      final uri = Uri.parse('$serverUrl/api/rubik/solve');
+      final response = await _httpClient.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'cube_state': cubeState,
+        }),
+      ).timeout(const Duration(seconds: 30));
+
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body) as Map<String, dynamic>;
+        final moves = (data['moves'] as List<dynamic>)
+            .map((e) => e.toString())
+            .toList();
+        return moves;
+      } else {
+        // Parse error message
+        String errorMessage = 'Failed to solve cube';
+        try {
+          final error = jsonDecode(response.body) as Map<String, dynamic>;
+          errorMessage = error['detail'] ?? errorMessage;
+        } catch (e) {
+          errorMessage = 'HTTP ${response.statusCode}: ${response.body}';
+        }
+        throw Exception(errorMessage);
+      }
+    } catch (e) {
+      if (e is Exception) {
+        rethrow;
+      }
+      throw Exception('Lỗi khi giải cube: ${e.toString()}');
+    }
+  }
 }
 

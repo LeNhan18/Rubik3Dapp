@@ -8,13 +8,25 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# Use argon2 instead of bcrypt to avoid 72-byte password limitation
-pwd_context = CryptContext(schemes=["argon2"], deprecated="auto")
+# Use bcrypt for password hashing (more compatible, no extra dependencies)
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
 
 def verify_password(plain_password: str, hashed_password: str) -> bool:
     """Verify a password against a hash"""
-    return pwd_context.verify(plain_password, hashed_password)
+    if not hashed_password or not plain_password:
+        return False
+    
+    try:
+        return pwd_context.verify(plain_password, hashed_password)
+    except Exception as e:
+        logger.warning(f"Password verification error: {e}")
+        # Nếu hash không hợp lệ, có thể là plain text (cho backward compatibility)
+        # CHỈ CHO DEVELOPMENT - XÓA ĐI KHI PRODUCTION!
+        if hashed_password == plain_password:
+            logger.warning("⚠️ Plain text password detected - should be hashed!")
+            return True
+        return False
 
 
 def get_password_hash(password: str) -> str:

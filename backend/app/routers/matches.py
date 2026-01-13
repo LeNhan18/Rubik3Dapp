@@ -94,3 +94,38 @@ async def get_my_matches(
     matches = query.order_by(Match.created_at.desc()).limit(limit).all()
     return matches
 
+
+@router.delete("/{match_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def cancel_match(
+    match_id: str,
+    current_user: dict = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Cancel/delete a match (only if not started or user is participant)"""
+    from app.models.match import Match, MatchStatus
+    
+    match = db.query(Match).filter(Match.match_id == match_id).first()
+    if not match:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Match not found"
+        )
+    
+    # Check if user is a participant
+    if current_user["id"] not in [match.player1_id, match.player2_id]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not a participant in this match"
+        )
+    
+    # Only allow cancel if match is pending or waiting
+    if match.status not in [MatchStatus.pending, MatchStatus.waiting]:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Cannot cancel a match that has already started or finished"
+        )
+    
+    db.delete(match)
+    db.commit()
+    return None
+

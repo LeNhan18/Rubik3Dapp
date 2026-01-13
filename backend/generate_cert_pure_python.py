@@ -17,8 +17,8 @@ try:
     from cryptography.hazmat.primitives.asymmetric import rsa
     from cryptography.hazmat.primitives import serialization
 except ImportError:
-    print("\n❌ Module 'cryptography' not found!")
-    print("\n💡 Install it with:")
+    print("\n Module 'cryptography' not found!")
+    print("\n Install it with:")
     print("   pip install cryptography")
     sys.exit(1)
 
@@ -47,23 +47,23 @@ def generate_certificate_python():
     local_ip = get_local_ip()
     
     print("=" * 60)
-    print("🔒 RUBIK MASTER - HTTPS Certificate Generator")
+    print(" RUBIK MASTER - HTTPS Certificate Generator")
     print("   (Pure Python - No OpenSSL required)")
     print("=" * 60)
-    print(f"\n📍 Detected IP Address: {local_ip}")
-    print(f"📁 Certificate location: {certs_dir}")
+    print(f"\n Detected IP Address: {local_ip}")
+    print(f" Certificate location: {certs_dir}")
     
     # Kiểm tra nếu certificate đã tồn tại
     if cert_file.exists() and key_file.exists():
-        response = input("\n⚠️  Certificate already exists. Regenerate? (y/N): ")
+        response = input("\n  Certificate already exists. Regenerate? (y/N): ")
         if response.lower() != 'y':
-            print("✅ Using existing certificates")
-            print(f"\n📜 Certificate: {cert_file}")
-            print(f"🔑 Private Key: {key_file}")
+            print(" Using existing certificates")
+            print(f"\n Certificate: {cert_file}")
+            print(f" Private Key: {key_file}")
             return
     
-    print("\n🔧 Generating self-signed certificate...")
-    print("⏳ This may take a few seconds (generating 4096-bit RSA key)...")
+    print("\n Generating self-signed certificate...")
+    print(" This may take a few seconds (generating 4096-bit RSA key)...")
     
     try:
         # Generate private key
@@ -115,15 +115,15 @@ def generate_certificate_python():
         with open(cert_file, "wb") as f:
             f.write(cert.public_bytes(serialization.Encoding.PEM))
         
-        print("\n✅ Certificate generated successfully!")
-        print(f"\n📜 Certificate: {cert_file}")
-        print(f"🔑 Private Key: {key_file}")
-        print(f"🌐 Valid for IP: {local_ip}")
-        print(f"🌐 Also valid for: localhost")
-        print(f"⏰ Valid for: 365 days")
+        print("\n Certificate generated successfully!")
+        print(f"\n Certificate: {cert_file}")
+        print(f" Private Key: {key_file}")
+        print(f" Valid for IP: {local_ip}")
+        print(f" Also valid for: localhost")
+        print(f" Valid for: 365 days")
         
         print("\n" + "=" * 60)
-        print("📋 NEXT STEPS:")
+        print(" NEXT STEPS:")
         print("=" * 60)
         print("\n1. Cập nhật file .env (nếu chưa có):")
         print("   HTTPS_ENABLED=true")
@@ -162,11 +162,11 @@ BACKEND_URL=https://{local_ip}:8000
 
 # Remember to update your Flutter app with the new HTTPS URL!
 """)
-        print(f"\n💡 Sample config saved to: {env_sample}")
+        print(f"\n Sample config saved to: {env_sample}")
         print(f"   Copy settings to your .env file")
         
     except Exception as e:
-        print(f"\n❌ Error generating certificate: {e}")
+        print(f"\n Error generating certificate: {e}")
         import traceback
         traceback.print_exc()
         sys.exit(1)
@@ -175,8 +175,8 @@ if __name__ == "__main__":
     try:
         generate_certificate_python()
     except KeyboardInterrupt:
-        print("\n\n⚠️  Cancelled by user")
+        print("\n\n  Cancelled by user")
         sys.exit(0)
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
+        print(f"\n Unexpected error: {e}")
         sys.exit(1)

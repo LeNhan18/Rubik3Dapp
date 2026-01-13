@@ -9,7 +9,7 @@ import 'api_service.dart';
 class AdminApiService {
   final ApiService _apiService = ApiService();
   // Local development
-  static const String baseUrl = 'http://192.168.1.12:8000/api/admin';
+  static const String baseUrl = 'https://172.20.10.5:8000/api/admin';
   
   // Fly.io production (commented)
   // static const String baseUrl = 'https://app-falling-wind-2135.fly.dev/api/admin';

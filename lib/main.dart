@@ -23,6 +23,7 @@ import 'screens/rubik_solver_ui_screen.dart';
 import 'screens/cube_scan_screen.dart';
 import 'screens/admin_screen.dart';
 import 'models/user.dart';
+import 'models/rubik_cube.dart' show CubeColor;
 import 'theme/pixel_theme.dart';
 
 void main() async {

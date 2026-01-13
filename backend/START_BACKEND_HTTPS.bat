@@ -34,7 +34,7 @@ echo Press Ctrl+C to stop
 echo ========================================
 echo.
 
-python run_https.py
+py run_https.py
 
 echo.
 echo Server stopped.

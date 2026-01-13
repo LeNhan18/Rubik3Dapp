@@ -6,6 +6,7 @@ import '../models/rubik_cube.dart';
 import '../solver/simple_bfs_solver.dart';
 import '../widgets/cube_net_view.dart';
 import '../widgets/rubik_control_button.dart';
+import '../services/api_service.dart';
 
 class RubikSolverUIScreen extends StatefulWidget {
   final Map<String, List<List<CubeColor?>>>? scannedFaces;
@@ -69,13 +70,13 @@ class _RubikSolverUIScreenState extends State<RubikSolverUIScreen>
         }
       }
       
-      // Map colors vào RubikCube model
-      _cube = RubikCube();
-      _mapColorsToRubikCube(_cube, _cubeState);
-      
-      // Hiển thị thông báo thành công
+      // Map colors vào RubikCube model - chạy async để không block UI
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) {
+          _cube = RubikCube();
+          _mapColorsToRubikCube(_cube, _cubeState);
+          
+          // Hiển thị thông báo thành công
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
               content: Text('✓ Đã tải dữ liệu scan thành công! Bạn có thể giải cube ngay.'),
@@ -86,7 +87,8 @@ class _RubikSolverUIScreenState extends State<RubikSolverUIScreen>
         }
       });
     }
-    _pageController = PageController();
+    
+    _pageController = PageController(initialPage: _viewMode);
     _fadeController = AnimationController(
       duration: const Duration(milliseconds: 600),
       vsync: this,
@@ -94,6 +96,12 @@ class _RubikSolverUIScreenState extends State<RubikSolverUIScreen>
     _fadeAnimation = Tween<double>(begin: 0, end: 1).animate(
       CurvedAnimation(parent: _fadeController, curve: Curves.easeInOut),
     );
+    
+    // Start fade animation ngay lập tức để UI hiển thị (không bị ẩn)
+    _fadeController.value = 1.0; // Set trực tiếp để không có delay
+    
+    // Start fade animation ngay lập tức
+    _fadeController.forward();
   }
 
   @override
@@ -266,10 +274,45 @@ class _RubikSolverUIScreenState extends State<RubikSolverUIScreen>
     // Set colors từ UI vào cube (chỉ những sticker visible)
     _mapColorsToRubikCube(cube, _cubeState);
 
-    print('🚀 Bắt đầu BFS solver...');
-    final steps = await SimpleBFSSolver.solve(cube);
+    // Chuyển cube state sang Kociemba format
+    final cubeStateStr = _cubeStateToKociembaFormat();
+    
+    // Validate: không được có null colors
+    if (cubeStateStr.contains('?')) {
+      setState(() {
+        _solutionSteps = [];
+        _isSolving = false;
+      });
+      _showSnackBar('⚠ Điền đầy đủ tất cả màu sắc trước khi giải', Colors.orange);
+      return;
+    }
 
-    print('📝 Steps found: $steps');
+    List<String> steps = [];
+
+    // ƯU TIÊN: Thử Backend API trước (Kociemba - nhanh và chính xác)
+    try {
+      print('🚀 Thử giải bằng Backend API (Kociemba)...');
+      final apiService = ApiService();
+      steps = await apiService.solveCube(cubeStateStr);
+      print('✅ Backend API thành công: ${steps.length} moves');
+    } catch (e) {
+      print('⚠️ Backend API thất bại: $e');
+      print('🔄 Fallback về Frontend BFS solver...');
+      
+      // FALLBACK: Dùng Frontend BFS solver
+      try {
+        steps = await SimpleBFSSolver.solve(cube);
+        print('✅ Frontend BFS thành công: ${steps.length} moves');
+      } catch (e2) {
+        print('❌ Frontend BFS cũng thất bại: $e2');
+        setState(() {
+          _solutionSteps = [];
+          _isSolving = false;
+        });
+        _showSnackBar('⚠ Không thể giải cube. Vui lòng thử lại.', Colors.red);
+        return;
+      }
+    }
 
     if (steps.isEmpty) {
       setState(() {
@@ -280,7 +323,7 @@ class _RubikSolverUIScreenState extends State<RubikSolverUIScreen>
       return;
     }
 
-    // Apply moves
+    // Apply moves để verify
     for (final move in steps) {
       _applyCubeMove(cube, move);
     }
@@ -292,7 +335,7 @@ class _RubikSolverUIScreenState extends State<RubikSolverUIScreen>
     });
 
     if (cube.isSolved()) {
-      _showSnackBar('✓ Giải thành công! 🎉', Colors.green);
+      _showSnackBar('✓ Giải thành công! 🎉 (${steps.length} moves)', Colors.green);
     } else {
       _showSnackBar('⚠ Chưa hoàn toàn giải', Colors.orange);
     }
@@ -603,19 +646,24 @@ class _RubikSolverUIScreenState extends State<RubikSolverUIScreen>
           Expanded(
             child: FadeTransition(
               opacity: _fadeAnimation,
-              child: PageView(
+              child: PageView.builder(
                 controller: _pageController,
                 onPageChanged: (index) {
                   setState(() => _viewMode = index);
                 },
-                children: [
-                  // View 1: 3D Cube
-                  _build3DView(),
-                  // View 2: Net/Unfolded
-                  _buildNetView(),
-                  // View 3: Perspective
-                  _buildPerspectiveView(),
-                ],
+                itemCount: 3,
+                itemBuilder: (context, index) {
+                  switch (index) {
+                    case 0:
+                      return _build3DView();
+                    case 1:
+                      return _buildNetView();
+                    case 2:
+                      return _buildPerspectiveView();
+                    default:
+                      return const SizedBox();
+                  }
+                },
               ),
             ),
           ),
