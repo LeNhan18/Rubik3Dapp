@@ -25,6 +25,7 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   final _messageController = TextEditingController();
   final _scrollController = ScrollController();
   StreamSubscription<Map<String, dynamic>>? _wsSubscription;
+  Timer? _syncTimer;
 
   User? _currentUser;
   List<ChatMessage> _messages = [];
@@ -35,6 +36,13 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
   void initState() {
     super.initState();
     _checkAuthAndLoad();
+
+    // Sync messages every 30 seconds as backup
+    _syncTimer = Timer.periodic(const Duration(seconds: 30), (timer) {
+      if (_chatMatchId != null) {
+        _syncMessages();
+      }
+    });
   }
 
   Future<void> _checkAuthAndLoad() async {
@@ -73,9 +81,11 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
       // Tìm match hiện có giữa 2 user
       final matches = await _apiService.getMyMatches();
       final existingMatch = matches.firstWhere(
-            (match) =>
-        (match.player1Id == _currentUser!.id && match.player2Id == widget.friend.id) ||
-            (match.player1Id == widget.friend.id && match.player2Id == _currentUser!.id),
+        (match) =>
+            (match.player1Id == _currentUser!.id &&
+                match.player2Id == widget.friend.id) ||
+            (match.player1Id == widget.friend.id &&
+                match.player2Id == _currentUser!.id),
         orElse: () => throw Exception('No match found'),
       );
 
@@ -83,7 +93,8 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     } catch (e) {
       // Không tìm thấy match, tạo match mới cho chat
       try {
-        final match = await _apiService.createMatch(opponentId: widget.friend.id);
+        final match =
+            await _apiService.createMatch(opponentId: widget.friend.id);
         setState(() => _chatMatchId = match.matchId);
       } catch (createError) {
         print('Error creating chat match: $createError');
@@ -111,11 +122,10 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
 
         // Listen to WebSocket messages
         _wsSubscription = _wsService.messageStream?.listen(
-              (data) {
+          (data) {
             if (!mounted) return;
 
             if (data['type'] == 'chat' && data['match_id'] == _chatMatchId) {
-              // Check if message already exists to avoid duplicates
               final newMessage = ChatMessage(
                 id: 0,
                 matchId: _chatMatchId!,
@@ -126,16 +136,26 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
                 senderUsername: data['sender_username'] as String?,
               );
 
-              // Check for duplicates
-              final exists = _messages.any((msg) =>
-              msg.senderId == newMessage.senderId &&
-                  msg.content == newMessage.content &&
-                  msg.createdAt.difference(newMessage.createdAt).inSeconds.abs() < 2
-              );
+              // Always add new messages from WebSocket, avoid duplicates by checking recent messages
+              final isDuplicate = _messages
+                  .where((msg) =>
+                          DateTime.now().difference(msg.createdAt).inMinutes <
+                          5 // Check recent 5 minutes
+                      )
+                  .any((msg) =>
+                      msg.senderId == newMessage.senderId &&
+                      msg.content == newMessage.content &&
+                      msg.createdAt
+                              .difference(newMessage.createdAt)
+                              .inSeconds
+                              .abs() <
+                          5);
 
-              if (!exists) {
+              if (!isDuplicate) {
                 setState(() {
                   _messages.add(newMessage);
+                  // Sort messages by timestamp to maintain order
+                  _messages.sort((a, b) => a.createdAt.compareTo(b.createdAt));
                 });
                 _scrollToBottom();
               }
@@ -211,8 +231,9 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
         matchId: _chatMatchId!,
         content: content,
       );
-      // Reload messages to get the confirmed message from server
-      _loadMessages();
+
+      // API already broadcasts via WebSocket, no need to send again
+      // _wsService.sendChatMessage(_chatMatchId!, content);
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
@@ -221,10 +242,9 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
         // Remove optimistic message on error
         setState(() {
           _messages.removeWhere((msg) =>
-          msg.id == 0 &&
+              msg.id == 0 &&
               msg.content == content &&
-              msg.senderId == (_currentUser?.id ?? 0)
-          );
+              msg.senderId == (_currentUser?.id ?? 0));
         });
       }
     }
@@ -237,7 +257,8 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
       child: Row(
-        mainAxisAlignment: isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
+        mainAxisAlignment:
+            isMe ? MainAxisAlignment.end : MainAxisAlignment.start,
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
           if (!isMe) ...[
@@ -329,7 +350,28 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
     _wsSubscription?.cancel();
     _messageController.dispose();
     _scrollController.dispose();
+    _syncTimer?.cancel();
     super.dispose();
+  }
+
+  // Sync messages từ server (backup cho WebSocket)
+  Future<void> _syncMessages() async {
+    if (_chatMatchId == null || !mounted) return;
+
+    try {
+      final serverMessages = await _apiService.getMessages(_chatMatchId!);
+
+      // Chỉ update nếu có messages mới
+      if (serverMessages.length > _messages.length) {
+        setState(() {
+          _messages = serverMessages;
+        });
+        _scrollToBottom();
+      }
+    } catch (e) {
+      // Silent fail cho sync operation
+      print('Sync messages error: $e');
+    }
   }
 
   @override
@@ -362,9 +404,12 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
               ),
               actions: [
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
-                    color: widget.friend.isOnline ? PixelColors.success : PixelColors.textLight,
+                    color: widget.friend.isOnline
+                        ? PixelColors.success
+                        : PixelColors.textLight,
                     border: Border.all(color: PixelColors.border, width: 2),
                   ),
                   child: PixelText(
@@ -379,74 +424,78 @@ class _FriendChatScreenState extends State<FriendChatScreen> {
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator())
                   : Column(
-                children: [
-                  // Messages
-                  Expanded(
-                    child: _messages.isEmpty
-                        ? Center(
-                      child: Text(
-                        'Chưa có tin nhắn nào',
-                        style: theme.textTheme.bodyMedium?.copyWith(
-                          color: theme.colorScheme.onSurface.withOpacity(0.5),
-                        ),
-                      ),
-                    )
-                        : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      itemCount: _messages.length,
-                      physics: const AlwaysScrollableScrollPhysics(),
-                      itemBuilder: (context, index) {
-                        return _buildMessageBubble(_messages[index]);
-                      },
-                    ),
-                  ),
-
-                  // Message input
-                  Container(
-                    padding: const EdgeInsets.all(12),
-                    decoration: BoxDecoration(
-                      color: theme.colorScheme.surface,
-                      boxShadow: [
-                        BoxShadow(
-                          color: Colors.black.withOpacity(0.05),
-                          blurRadius: 4,
-                          offset: const Offset(0, -2),
-                        ),
-                      ],
-                    ),
-                    child: Row(
                       children: [
+                        // Messages
                         Expanded(
-                          child: TextField(
-                            controller: _messageController,
-                            decoration: InputDecoration(
-                              hintText: 'Nhập tin nhắn...',
-                              border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(24),
-                              ),
-                              contentPadding: const EdgeInsets.symmetric(
-                                horizontal: 16,
-                                vertical: 8,
-                              ),
-                            ),
-                            onSubmitted: (_) => _sendMessage(),
-                          ),
+                          child: _messages.isEmpty
+                              ? Center(
+                                  child: Text(
+                                    'Chưa có tin nhắn nào',
+                                    style: theme.textTheme.bodyMedium?.copyWith(
+                                      color: theme.colorScheme.onSurface
+                                          .withOpacity(0.5),
+                                    ),
+                                  ),
+                                )
+                              : ListView.builder(
+                                  controller: _scrollController,
+                                  padding:
+                                      const EdgeInsets.symmetric(vertical: 8),
+                                  itemCount: _messages.length,
+                                  physics:
+                                      const AlwaysScrollableScrollPhysics(),
+                                  itemBuilder: (context, index) {
+                                    return _buildMessageBubble(
+                                        _messages[index]);
+                                  },
+                                ),
                         ),
-                        const SizedBox(width: 8),
-                        IconButton(
-                          onPressed: _sendMessage,
-                          icon: const Icon(Icons.send),
-                          style: IconButton.styleFrom(
-                            backgroundColor: theme.colorScheme.primary,
-                            foregroundColor: Colors.white,
+
+                        // Message input
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surface,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withOpacity(0.05),
+                                blurRadius: 4,
+                                offset: const Offset(0, -2),
+                              ),
+                            ],
+                          ),
+                          child: Row(
+                            children: [
+                              Expanded(
+                                child: TextField(
+                                  controller: _messageController,
+                                  decoration: InputDecoration(
+                                    hintText: 'Nhập tin nhắn...',
+                                    border: OutlineInputBorder(
+                                      borderRadius: BorderRadius.circular(24),
+                                    ),
+                                    contentPadding: const EdgeInsets.symmetric(
+                                      horizontal: 16,
+                                      vertical: 8,
+                                    ),
+                                  ),
+                                  onSubmitted: (_) => _sendMessage(),
+                                ),
+                              ),
+                              const SizedBox(width: 8),
+                              IconButton(
+                                onPressed: _sendMessage,
+                                icon: const Icon(Icons.send),
+                                style: IconButton.styleFrom(
+                                  backgroundColor: theme.colorScheme.primary,
+                                  foregroundColor: Colors.white,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
                     ),
-                  ),
-                ],
-              ),
             ),
           ],
         ),

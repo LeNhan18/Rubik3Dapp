@@ -6,6 +6,7 @@ from app.models.user import User
 from app.schemas.match import MatchCreate, MatchResult
 from app.utils.scramble_generator import generate_scramble
 import uuid
+import json
 from datetime import datetime
 
 class MatchService:

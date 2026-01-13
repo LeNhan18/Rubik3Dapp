@@ -30,11 +30,12 @@ async def send_message(
     if _manager:
         await _manager.broadcast_to_match({
             "type": "chat",
+            "match_id": message.match_id,  # IMPORTANT: Client needs this to filter messages
             "sender_id": message.sender_id,
             "sender_username": message.sender.username,
             "content": message.content,
             "timestamp": message.created_at.isoformat()
-        }, message.match_id, exclude_user_id=None)  # Include sender so they see it too
+        }, message.match_id, exclude_user_id=message.sender_id)  # Exclude sender since they already have optimistic update
     
     # Return with sender username
     return {
