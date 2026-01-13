@@ -26,7 +26,7 @@ class SimpleBFSSolver {
 
   /// Solve cube using simple BFS
   static Future<List<String>> solve(RubikCube cube) async {
-    print('🔍 Starting BFS solver...');
+    print(' Starting BFS solver...');
 
     // Check if already solved
     if (cube.isSolved()) {
@@ -38,11 +38,11 @@ class SimpleBFSSolver {
     var solution = _bfsSearch(cube, maxDepth: 20);
 
     if (solution.isEmpty) {
-      print('❌ No solution found');
+      print(' No solution found');
       return [];
     }
 
-    print('✅ Solution found: ${solution.length} moves');
+    print(' Solution found: ${solution.length} moves');
     return solution;
   }
 

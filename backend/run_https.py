@@ -26,26 +26,26 @@ def main():
     key_file = certs_dir / "key.pem"
     
     print("=" * 60)
-    print("🚀 RUBIK MASTER BACKEND - HTTPS Server")
+    print(" RUBIK MASTER BACKEND - HTTPS Server")
     print("=" * 60)
     
     # Kiểm tra certificates có tồn tại không
     if not cert_file.exists() or not key_file.exists():
-        print("\n❌ Certificates not found!")
-        print("\n💡 Generate certificates first:")
+        print("\n Certificates not found!")
+        print("\n Generate certificates first:")
         print("   python generate_cert.py")
         sys.exit(1)
     
     local_ip = get_local_ip()
     
-    print(f"\n🔒 HTTPS Enabled")
-    print(f"📜 Certificate: {cert_file}")
-    print(f"🔑 Private Key: {key_file}")
-    print(f"🌐 IP Address: {local_ip}")
-    print(f"🔌 Port: 8000")
-    print(f"\n🌍 Server URL: https://{local_ip}:8000")
-    print(f"📖 API Docs: https://{local_ip}:8000/docs")
-    print(f"📊 ReDoc: https://{local_ip}:8000/redoc")
+    print(f"\n HTTPS Enabled")
+    print(f" Certificate: {cert_file}")
+    print(f" Private Key: {key_file}")
+    print(f" IP Address: {local_ip}")
+    print(f" Port: 8000")
+    print(f"\n Server URL: https://{local_ip}:8000")
+    print(f" API Docs: https://{local_ip}:8000/docs")
+    print(f" ReDoc: https://{local_ip}:8000/redoc")
     
     print("\n" + "=" * 60)
     print("Starting server...")
@@ -66,5 +66,5 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\n👋 Server stopped")
+        print("\n\n Server stopped")
         sys.exit(0)
