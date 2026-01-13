@@ -1,7 +1,7 @@
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from app.config import settings
-from app.routers import auth, users, matches, chat, friends, admin
+from app.routers import auth, users, matches, chat, friends, admin, rubik
 from app.services.websocket_service import ConnectionManager
 from app.utils.dependencies import get_current_user
 from app.utils.security import decode_access_token
@@ -56,6 +56,7 @@ app.include_router(matches.router, prefix="/api/matches", tags=["Matches"])
 app.include_router(chat.router, prefix="/api/chat", tags=["Chat"])
 app.include_router(friends.router, prefix="/api/friends", tags=["Friends"])
 app.include_router(admin.router, prefix="/api/admin", tags=["Admin"])
+app.include_router(rubik.router, prefix="/api/rubik", tags=["Rubik Solver"])
 
 # Set manager in chat router
 chat.set_manager(manager)

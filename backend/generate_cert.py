@@ -48,20 +48,20 @@ def generate_certificate():
     local_ip = get_local_ip()
     
     print("=" * 60)
-    print("🔒 RUBIK MASTER - HTTPS Certificate Generator")
+    print(" RUBIK MASTER - HTTPS Certificate Generator")
     print("=" * 60)
-    print(f"\n📍 Detected IP Address: {local_ip}")
-    print(f"📁 Certificate location: {certs_dir}")
+    print(f"\n Detected IP Address: {local_ip}")
+    print(f" Certificate location: {certs_dir}")
     
     # Kiểm tra nếu certificate đã tồn tại
     if cert_file.exists() and key_file.exists():
-        response = input("\n⚠️  Certificate already exists. Regenerate? (y/N): ")
+        response = input("\n  Certificate already exists. Regenerate? (y/N): ")
         if response.lower() != 'y':
-            print("✅ Using existing certificates")
+            print(" Using existing certificates")
             return
     
-    print("\n🔧 Generating self-signed certificate...")
-    print("⏳ This may take a few seconds...")
+    print("\n Generating self-signed certificate...")
+    print(" This may take a few seconds...")
     
     # Tạo subject string cho certificate
     subject = f"/C=VN/ST=HaNoi/L=HaNoi/O=RubikMasterDev/CN={local_ip}"
@@ -87,14 +87,14 @@ def generate_certificate():
             check=True
         )
         
-        print("\n✅ Certificate generated successfully!")
-        print(f"\n📜 Certificate: {cert_file}")
-        print(f"🔑 Private Key: {key_file}")
-        print(f"🌐 Valid for IP: {local_ip}")
-        print(f"⏰ Valid for: 365 days")
+        print("\n Certificate generated successfully!")
+        print(f"\n Certificate: {cert_file}")
+        print(f" Private Key: {key_file}")
+        print(f" Valid for IP: {local_ip}")
+        print(f" Valid for: 365 days")
         
         print("\n" + "=" * 60)
-        print("📋 NEXT STEPS:")
+        print(" NEXT STEPS:")
         print("=" * 60)
         print("\n1. Cập nhật file .env:")
         print("   HTTPS_ENABLED=true")
@@ -105,7 +105,7 @@ def generate_certificate():
         print("\n2. Chạy backend với HTTPS:")
         print("   python run_https.py")
         print("   hoặc:")
-        print(f"   python -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --ssl-keyfile {key_file} --ssl-certfile {cert_file}")
+        print(f"   py -m uvicorn app.main:app --host 0.0.0.0 --port 8000 --ssl-keyfile {key_file} --ssl-certfile {cert_file}")
         
         print("\n3. Trong Flutter app:")
         print(f"   - Đổi URL: https://{local_ip}:8000")
@@ -128,10 +128,10 @@ BACKEND_URL=https://{local_ip}:8000
 
 # Remember to update your Flutter app with the new HTTPS URL!
 """)
-        print(f"\n💡 Sample config saved to: {env_sample}")
+        print(f"\n Sample config saved to: {env_sample}")
         
     except subprocess.CalledProcessError as e:
-        print("\n❌ Error generating certificate:")
+        print("\nError generating certificate:")
         print(f"   {e.stderr}")
         return False
     except FileNotFoundError:
@@ -148,8 +148,8 @@ def generate_certificate_python():
         from cryptography.hazmat.primitives.asymmetric import rsa
         from cryptography.hazmat.primitives import serialization
     except ImportError:
-        print("\n❌ Python cryptography library not found!")
-        print("\n💡 Install it with:")
+        print("\n Python cryptography library not found!")
+        print("\n Install it with:")
         print("   pip install cryptography")
         print("\n   (It should already be in requirements.txt)")
         return False
@@ -162,8 +162,8 @@ def generate_certificate_python():
     key_file = certs_dir / "key.pem"
     local_ip = get_local_ip()
     
-    print("\n🔧 Using Python cryptography library...")
-    print("⏳ Generating 4096-bit RSA key (this may take 10-30 seconds)...")
+    print("\n Using Python cryptography library...")
+    print(" Generating 4096-bit RSA key (this may take 10-30 seconds)...")
     
     try:
         # Generate private key
@@ -213,23 +213,23 @@ def generate_certificate_python():
         with open(cert_file, "wb") as f:
             f.write(cert.public_bytes(serialization.Encoding.PEM))
         
-        print("\n✅ Certificate generated successfully!")
-        print(f"\n📜 Certificate: {cert_file}")
-        print(f"🔑 Private Key: {key_file}")
-        print(f"🌐 Valid for IP: {local_ip}")
-        print(f"🌐 Also valid for: localhost")
-        print(f"⏰ Valid for: 365 days")
+        print("\n Certificate generated successfully!")
+        print(f"\n Certificate: {cert_file}")
+        print(f" Private Key: {key_file}")
+        print(f" Valid for IP: {local_ip}")
+        print(f" Also valid for: localhost")
+        print(f" Valid for: 365 days")
         
         return True
         
     except Exception as e:
-        print(f"\n❌ Error: {e}")
+        print(f"\n Error: {e}")
         return False
 
 def print_next_steps(local_ip, cert_file, key_file):
     """In hướng dẫn các bước tiếp theo"""
     print("\n" + "=" * 60)
-    print("📋 NEXT STEPS:")
+    print(" NEXT STEPS:")
     print("=" * 60)
     print("\n1. Chạy backend với HTTPS:")
     print("   python run_https.py")
@@ -252,39 +252,39 @@ def main():
     local_ip = get_local_ip()
     
     print("=" * 60)
-    print("🔒 RUBIK MASTER - HTTPS Certificate Generator")
+    print(" RUBIK MASTER - HTTPS Certificate Generator")
     print("=" * 60)
-    print(f"\n📍 Detected IP Address: {local_ip}")
-    print(f"📁 Certificate location: {certs_dir}")
+    print(f"\n Detected IP Address: {local_ip}")
+    print(f" Certificate location: {certs_dir}")
     
     # Kiểm tra certificate đã tồn tại
     if cert_file.exists() and key_file.exists():
-        response = input("\n⚠️  Certificate already exists. Regenerate? (y/N): ")
+        response = input("\n  Certificate already exists. Regenerate? (y/N): ")
         if response.lower() != 'y':
-            print("✅ Using existing certificates")
-            print(f"📜 Certificate: {cert_file}")
-            print(f"🔑 Private Key: {key_file}")
+            print(" Using existing certificates")
+            print(f" Certificate: {cert_file}")
+            print(f" Private Key: {key_file}")
             return
     
-    print("\n🔍 Checking available methods...")
+    print("\n Checking available methods...")
     
     # Thử OpenSSL trước
     if check_openssl():
-        print("✅ OpenSSL found - using OpenSSL (faster)")
+        print(" OpenSSL found - using OpenSSL (faster)")
         success = generate_certificate_openssl()
         if success:
             print_next_steps(local_ip, cert_file, key_file)
             return
     
     # Fallback sang Python cryptography
-    print("⚠️  OpenSSL not available - using Python cryptography")
+    print("  OpenSSL not available - using Python cryptography")
     success = generate_certificate_python()
     
     if success:
         print_next_steps(local_ip, cert_file, key_file)
     else:
-        print("\n❌ All methods failed!")
-        print("\n💡 Try:")
+        print("\n All methods failed!")
+        print("\n Try:")
         print("   1. pip install cryptography")
         print("   2. Install OpenSSL:")
         print("      - Git for Windows (includes OpenSSL)")
@@ -298,8 +298,8 @@ def generate_certificate_openssl():
     key_file = certs_dir / "key.pem"
     local_ip = get_local_ip()
     
-    print("\n🔧 Generating with OpenSSL...")
-    print("⏳ This may take a few seconds...")
+    print("\n Generating with OpenSSL...")
+    print(" This may take a few seconds...")
     
     subject = f"/C=VN/ST=HaNoi/L=HaNoi/O=RubikMasterDev/CN={local_ip}"
     
@@ -316,22 +316,22 @@ def generate_certificate_openssl():
     
     try:
         subprocess.run(cmd, capture_output=True, text=True, check=True)
-        print("✅ Certificate generated successfully!")
-        print(f"📜 Certificate: {cert_file}")
-        print(f"🔑 Private Key: {key_file}")
-        print(f"🌐 Valid for IP: {local_ip}")
-        print(f"⏰ Valid for: 365 days")
+        print(" Certificate generated successfully!")
+        print(f" Certificate: {cert_file}")
+        print(f" Private Key: {key_file}")
+        print(f" Valid for IP: {local_ip}")
+        print(f" Valid for: 365 days")
         return True
     except subprocess.CalledProcessError as e:
-        print(f"❌ OpenSSL error: {e.stderr}")
+        print(f" OpenSSL error: {e.stderr}")
         return False
 
 if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        print("\n\n⚠️  Cancelled by user")
+        print("\n\n  Cancelled by user")
         sys.exit(0)
     except Exception as e:
-        print(f"\n❌ Unexpected error: {e}")
+        print(f"\n Unexpected error: {e}")
         sys.exit(1)
