@@ -70,6 +70,7 @@ class Match {
     this.player2Username,
   });
 
+
   factory Match.fromJson(Map<String, dynamic> json) {
     return Match(
       id: json['id'] as int,
@@ -78,8 +79,12 @@ class Match {
       player2Id: json['player2_id'] as int,
       scramble: json['scramble'] as String,
       status: MatchStatus.fromString(json['status'] as String),
-      player1Time: json['player1_time'] as int?,
-      player2Time: json['player2_time'] as int?,
+      player1Time: json['player1_time'] is int 
+          ? json['player1_time'] as int?
+          : (json['player1_time'] is String ? int.tryParse(json['player1_time'] as String) : null),
+      player2Time: json['player2_time'] is int
+          ? json['player2_time'] as int?
+          : (json['player2_time'] is String ? int.tryParse(json['player2_time'] as String) : null),
       winnerId: json['winner_id'] as int?,
       isDraw: json['is_draw'] as bool? ?? false,
       createdAt: DateTime.parse(json['created_at'] as String),

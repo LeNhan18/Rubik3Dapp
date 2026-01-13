@@ -5,7 +5,7 @@ MOVES = ['R', 'L', 'U', 'D', 'F', 'B']
 PRIME = "'"
 DOUBLE = "2"
 
-def generate_scramble(length: int = 25) -> str:
+def generate_scramble(length: int = 3) -> str:
     """Generate a random WCA-compliant scramble"""
     scramble = []
     last_move = None
