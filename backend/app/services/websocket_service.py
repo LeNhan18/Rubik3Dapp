@@ -85,6 +85,7 @@ class ConnectionManager:
                 sender_username = self.user_usernames.get(user_id, f"User{user_id}")
                 await self.broadcast_to_match({
                     "type": "chat",
+                    "match_id": match_id,  # IMPORTANT: Client needs this to filter messages
                     "sender_id": user_id,
                     "sender_username": sender_username,
                     "content": data.get("content", ""),
