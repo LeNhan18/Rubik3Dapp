@@ -2,17 +2,19 @@ FROM python:3.10-slim
 
 WORKDIR /app
 
-# Copy requirements first for better caching
+RUN apt-get update && apt-get install -y gcc && rm -rf /var/lib/apt/lists/*
+
 COPY app/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy all application code into /app/app/ directory
-# This creates the structure: /app/app/main.py, /app/app/config.py, etc.
-# So imports like "from app.config" will work
 COPY app app/
+COPY start.py .
 
-# Set PYTHONPATH to include /app so imports work
 ENV PYTHONPATH=/app
 
-# Run uvicorn with app.main:app (module path)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+RUN useradd --create-home --shell /bin/bash app && chown -R app:app /app
+USER app
+
+EXPOSE 8000
+
+CMD ["python", "start.py"]

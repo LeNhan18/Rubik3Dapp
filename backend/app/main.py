@@ -49,6 +49,26 @@ else:
 # WebSocket manager
 manager = ConnectionManager()
 
+# Health check endpoint (for Koyeb and other platforms)
+@app.get("/health")
+async def health_check():
+    """Health check endpoint for load balancers and monitoring"""
+    try:
+        # Test database connection
+        db = next(get_db())
+        db.execute("SELECT 1")
+        db_status = "healthy"
+    except Exception as e:
+        print(f"Database health check failed: {e}")
+        db_status = "unhealthy"
+    
+    return {
+        "status": "healthy",
+        "database": db_status,
+        "version": "1.0.0",
+        "service": "rubik-master-api"
+    }
+
 # Include routers
 app.include_router(auth.router, prefix="/api/auth", tags=["Authentication"])
 app.include_router(users.router, prefix="/api/users", tags=["Users"])
