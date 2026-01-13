@@ -90,7 +90,7 @@ class SimpleBFSSolver {
       }
     }
 
-    print('  ❌ No solution found (explored $exploredCount states)');
+    print(' No solution found (explored $exploredCount states)');
     return [];
   }
 

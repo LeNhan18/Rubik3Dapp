@@ -24,7 +24,7 @@ def verify_password(plain_password: str, hashed_password: str) -> bool:
         # Nếu hash không hợp lệ, có thể là plain text (cho backward compatibility)
         # CHỈ CHO DEVELOPMENT - XÓA ĐI KHI PRODUCTION!
         if hashed_password == plain_password:
-            logger.warning("⚠️ Plain text password detected - should be hashed!")
+            logger.warning("⚠ Plain text password detected - should be hashed!")
             return True
         return False
 
